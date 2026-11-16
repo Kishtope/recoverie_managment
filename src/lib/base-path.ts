@@ -1,0 +1,2 @@
+// Deploy prefix ("/office_managment" in production, "" locally); inlined from next.config.ts so client code can build non-router URLs (api, img/video src, hard redirects).
+export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ""

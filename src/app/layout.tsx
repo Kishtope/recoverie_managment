@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toast";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { BASE_PATH } from "@/lib/base-path";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -23,6 +24,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "KishtoPe",
   description: "KishtoPe recovery management",
+  // favicon.ico in src/app is picked up automatically; these add the PNG sizes, iOS icon and PWA manifest.
+  icons: {
+    icon: [
+      { url: `${BASE_PATH}/brand/mark.svg`, type: "image/svg+xml" },
+      { url: `${BASE_PATH}/icon-192.png`, sizes: "192x192", type: "image/png" },
+      { url: `${BASE_PATH}/icon-512.png`, sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: `${BASE_PATH}/apple-touch-icon.png`, sizes: "180x180" }],
+  },
+  manifest: `${BASE_PATH}/site.webmanifest`,
 };
 
 /**

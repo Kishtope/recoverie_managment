@@ -13,3 +13,14 @@ export const signUp = async (input: SignUpInput) => {
   const { data } = await api.post<AuthResponse>("/auth/sign-up", input);
   return data;
 };
+
+// Fetches the currently signed-in user.
+export const getMe = async () => {
+  const { data } = await api.get<AuthResponse>("/auth/me");
+  return data.user;
+};
+
+// Ends the session; the server clears the cookie.
+export const signOut = async () => {
+  await api.post("/auth/sign-out");
+};
