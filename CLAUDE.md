@@ -128,7 +128,7 @@ The backend is **this app's own Next.js route handlers (`src/app/api/**`) + Pris
 **Server rules (every route handler):**
 
 - Use `requireUser(roles?)` from `@/lib/auth`: `const auth = await requireUser(["ADMIN"]); if ("error" in auth) return auth.error;` (401 if signed out/disabled, 403 if the role is not allowed). It reads the user, role and company/branch access **from the DB**, never from the JWT, so role changes and disabling apply immediately.
-- Scope data with `userScopeWhere(user)` (Prisma `where`: Admin all, Manager own team + branches, Agency owner own agency, Agent/Field agent only self). UI role checks are display only.
+- Scope data with `userScopeWhere(user)` (Prisma `where`: Admin all, Manager own team + branches, Agency owner own agency, Agent only self). UI role checks are display only.
 - Validate bodies with zod (`features/<feature>/schemas.ts`) and return 400/401/403/409 with `{ error }`.
 - Record create / role change / disable / export with `logAudit(...)` from `@/lib/audit`.
 - Schema changes go through `bun run db:migrate` (never `db push`); seed dev data with `bun run db:seed`.

@@ -16,7 +16,7 @@ export const GET = async () => {
     }),
     // Users who can hold cases; used by the Cases filter.
     prisma.user.findMany({
-      where: { role: { in: ["AGENT", "FIELD_AGENT", "AGENCY_OWNER"] } },
+      where: { role: { in: ["AGENT", "AGENCY_OWNER"] } },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

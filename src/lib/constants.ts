@@ -5,13 +5,12 @@ export const BRANCHES = ["Khairlanji", "Balaghat", "Mandla", "Chhindwara", "Raip
 export const COMPANIES = ["AF", "BLD", "MF", "MMPL"] as const;
 
 // Roles in display order (mirrors the Prisma `Role` enum) with the label shown in the UI.
-export const ROLES = ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "FIELD_AGENT"] as const;
+export const ROLES = ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] as const;
 export const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
   ADMIN: "Admin",
   MANAGER: "Manager",
   AGENCY_OWNER: "Agency owner",
   AGENT: "Agent",
-  FIELD_AGENT: "Field agent",
 };
 
 // Outcome codes an agent can record on a case (mirrors the Prisma `Outcome` enum) with the label shown in the UI.

@@ -11,7 +11,7 @@ const main = async () => {
   const upsert = async (
     email: string,
     name: string,
-    role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT" | "FIELD_AGENT",
+    role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT",
     extra: { reportsToId?: string; agencyId?: string; mobile?: string; hubUserId?: string; access: [("AF" | "BLD" | "MF" | "MMPL"), string][] },
   ) => {
     const { access, ...rest } = extra;
@@ -40,13 +40,13 @@ const main = async () => {
   await prisma.user.update({ where: { id: owner.id }, data: { agencyId: agency.id } });
   const agent1 = await upsert("agent1@example.com", "Asha Agent", "AGENT", { hubUserId: "HUB-1001", reportsToId: manager.id, mobile: "9000000003", access: [["AF", "Balaghat"]] });
   const agent2 = await upsert("agent2@example.com", "Arun Agent", "AGENT", { hubUserId: "HUB-1002", reportsToId: owner.id, agencyId: agency.id, mobile: "9000000004", access: [["BLD", "Mandla"]] });
-  const field1 = await upsert("field1@example.com", "Farah Field", "FIELD_AGENT", { hubUserId: "HUB-1003", reportsToId: manager.id, mobile: "9000000005", access: [["AF", "Khairlanji"]] });
+  const agent3 = await upsert("field1@example.com", "Farah Agent", "AGENT", { hubUserId: "HUB-1003", reportsToId: manager.id, mobile: "9000000005", access: [["AF", "Khairlanji"]] });
   // Sample cases so the Cases page is not empty in dev: 12 loans, the first 9 allocated (3 each), the rest unassigned.
   const companyBranch: ["AF" | "BLD", string][] = [["AF", "Balaghat"], ["BLD", "Mandla"], ["AF", "Khairlanji"]];
   const holders = [
     { user: agent1, agencyId: null },
     { user: agent2, agencyId: agency.id },
-    { user: field1, agencyId: null },
+    { user: agent3, agencyId: null },
   ];
   for (let i = 1; i <= 12; i++) {
     const [company, branch] = companyBranch[i % 3];

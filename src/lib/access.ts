@@ -13,7 +13,7 @@ export type CurrentUser = {
 
 // Prisma `where` for the User table limited to what `user` may see (server-side access rule).
 // Admin: all. Manager: self + direct reports + users sharing one of their company/branch grants.
-// Agency owner: their agency's members. Agent / field agent: only themselves.
+// Agency owner: their agency's members. Agent: only themselves.
 export const userScopeWhere = (user: CurrentUser): Prisma.UserWhereInput => {
   switch (user.role) {
     case "ADMIN":
@@ -35,7 +35,7 @@ export const userScopeWhere = (user: CurrentUser): Prisma.UserWhereInput => {
 
 // Prisma `where` for the Loan table limited to what `user` may see. Ownership follows the ACTIVE allocation only,
 // so an agent whose case was reassigned stops seeing it. Admin: all. Manager: their team's cases + loans in their company/branch grants.
-// Agency owner: their agency's cases. Agent / field agent: only cases allocated to them.
+// Agency owner: their agency's cases. Agent: only cases allocated to them.
 export const loanScopeWhere = (user: CurrentUser): Prisma.LoanWhereInput => {
   const active = (where: Prisma.AllocationWhereInput): Prisma.LoanWhereInput => ({ allocations: { some: { active: true, ...where } } });
   switch (user.role) {

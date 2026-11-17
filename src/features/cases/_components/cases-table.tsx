@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { format } from "date-fns";
+import { EyeIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { DataTableColumn } from "@/components/data-table";
 import { FollowUpBadge } from "@/components/follow-up-badge";
 import { OutcomeBadge } from "@/components/outcome-badge";
@@ -66,4 +68,16 @@ export const getCasesColumns = ({ showAgent }: { showAgent: boolean }): DataTabl
         { key: "assignedOn", header: "Assigned on", cell: (l: LoanListItem) => (l.assignedOn ? format(new Date(l.assignedOn), "dd MMM yyyy") : "-") },
       ]
     : []),
+  {
+    key: "actions",
+    header: "",
+    className: "text-right",
+    // Explicit "View details" button that opens the case page; stops propagation so the row click doesn't fire twice.
+    cell: (l) => (
+      <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/cases/${l.id}`} onClick={(e) => e.stopPropagation()} />}>
+        <EyeIcon data-icon="inline-start" />
+        View details
+      </Button>
+    ),
+  },
 ];

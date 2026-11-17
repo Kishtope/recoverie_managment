@@ -12,7 +12,6 @@ enum Role {
   MANAGER
   AGENCY_OWNER
   AGENT
-  FIELD_AGENT
 }
 
 enum UserStatus {

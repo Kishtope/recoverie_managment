@@ -9,7 +9,7 @@ import { AgentDashboard } from "./agent-dashboard";
 /**
  * @component HomeView
  * @description The home page picks its dashboard by role. Agents get their own; the other roles get a placeholder until their
- * dashboards are built (manager / agency / admin: Phase 4, field agent: Phase 2B).
+ * dashboards are built (manager / agency / admin: Phase 4).
  */
 export const HomeView = () => {
   const { data: me } = useMe();

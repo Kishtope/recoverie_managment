@@ -10,7 +10,7 @@ Next.js 16 + Prisma 7 (MySQL) + TanStack Query. Package manager: bun.
    - `JWT_ACCESS_SECRET` — secret that signs the session JWT
    - `SEED_USER_NAME`, `SEED_USER_EMAIL`, `SEED_USER_PASSWORD` — the first Admin created by the seed
 3. `bun run db:migrate` (dev) or `bun run db:deploy` (production) — apply migrations
-4. `bun run db:seed` — one user per role (admin, manager, agency owner, 2 agents, field agent) for dev/testing; all use `SEED_USER_PASSWORD`
+4. `bun run db:seed` — one user per role (admin, manager, agency owner, 3 agents) for dev/testing; all use `SEED_USER_PASSWORD`
 5. `bun run dev` and open http://localhost:3000
 
 ## Importing hub data (Admin)

@@ -7,9 +7,8 @@ test("admin sees everyone", () => {
   expect(userScopeWhere({ ...base, role: "ADMIN" })).toEqual({});
 });
 
-test("agent and field agent see only themselves", () => {
+test("agent sees only themselves", () => {
   expect(userScopeWhere(base)).toEqual({ id: "u1" });
-  expect(userScopeWhere({ ...base, role: "FIELD_AGENT" })).toEqual({ id: "u1" });
 });
 
 test("manager sees self, own team and own company/branch grants only", () => {
@@ -26,9 +25,8 @@ test("agency owner sees only their agency; without an agency only themselves", (
 
 test("loan scope follows the ACTIVE allocation only", () => {
   expect(loanScopeWhere({ ...base, role: "ADMIN" })).toEqual({});
-  // Agent / field agent: only active allocations to themselves, so a case reassigned away (inactive) drops out.
+  // Agent: only active allocations to themselves, so a case reassigned away (inactive) drops out.
   expect(loanScopeWhere(base)).toEqual({ allocations: { some: { active: true, agentId: "u1" } } });
-  expect(loanScopeWhere({ ...base, role: "FIELD_AGENT" })).toEqual({ allocations: { some: { active: true, agentId: "u1" } } });
 });
 
 test("loan scope for agency owner and manager", () => {
