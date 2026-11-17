@@ -1,22 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MailIcon } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
 import { signInSchema } from "../schemas";
 import { useSignIn } from "../hooks/use-sign-in";
 import { PasswordInput } from "./password-input";
 
 /**
  * @component SignInForm
- * @description Email + password sign-in card with a link to the sign-up page.
+ * @description Email + password sign-in card.
  */
 export const SignInForm = () => {
   const router = useRouter();
@@ -63,12 +61,7 @@ export const SignInForm = () => {
               {isPending && <Spinner data-icon="inline-start" />}
               {isPending ? "Signing in…" : "Sign in"}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link href="/sign-up" className={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}>
-                Sign up
-              </Link>
-            </p>
+            <p className="text-center text-sm text-muted-foreground">Accounts are created by an admin.</p>
           </FieldGroup>
         </form>
       </CardContent>

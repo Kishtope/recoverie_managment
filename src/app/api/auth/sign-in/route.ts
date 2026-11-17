@@ -11,11 +11,12 @@ export const POST = async (req: Request) => {
 
   const { email, password } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email } });
-  // Same message for unknown email and wrong password so accounts can't be enumerated.
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  // Same message for unknown email, wrong password and disabled accounts so accounts can't be enumerated.
+  if (!user || user.status !== "ACTIVE" || !(await verifyPassword(password, user.passwordHash))) {
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await startSession(user);
   return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 };

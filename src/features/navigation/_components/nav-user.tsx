@@ -13,7 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ROLE_LABELS } from "@/lib/constants";
 import { Spinner } from "@/components/ui/spinner";
 import { useMe } from "@/features/auth/hooks/use-me";
 import { useSignOut } from "@/features/auth/hooks/use-sign-out";
@@ -28,7 +30,7 @@ const getInitials = (name: string) =>
     .join("");
 
 // Avatar plus two-line name/email block, reused by the trigger and the menu header.
-const UserInfo = ({ name, email }: { name: string; email: string }) => (
+const UserInfo = ({ name, email }: { name: string; email: string | null }) => (
   <>
     <Avatar className="size-8 rounded-lg">
       <AvatarFallback className="rounded-lg bg-sidebar-foreground font-semibold text-sidebar">
@@ -37,7 +39,7 @@ const UserInfo = ({ name, email }: { name: string; email: string }) => (
     </Avatar>
     <div className="grid flex-1 text-left text-sm leading-tight">
       <span className="truncate font-medium">{name}</span>
-      <span className="truncate text-xs opacity-70">{email}</span>
+      <span className="truncate text-xs opacity-70">{email ?? "-"}</span>
     </div>
   </>
 );
@@ -83,6 +85,7 @@ export const NavUser = () => {
                   <div className="flex items-center gap-2 px-1 py-1.5">
                     <UserInfo name={user.name} email={user.email} />
                   </div>
+                  <div className="px-2 pb-1.5"><Badge variant="secondary">{ROLE_LABELS[user.role]}</Badge></div>
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />

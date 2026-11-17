@@ -1,0 +1,46 @@
+import { z } from "zod";
+import { OUTCOMES } from "@/lib/constants";
+import { todayIst } from "@/lib/dates";
+
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a valid date");
+const amount = z.number({ error: "Enter an amount" }).positive("Amount must be more than 0").max(99_999_999);
+
+// Validates an outcome form / POST body. Which fields are required depends on the outcome; fields that don't apply are dropped.
+// `today` is injectable so tests can pin the date; past dates are rejected.
+export const buildDispositionSchema = (today: string = todayIst()) =>
+  z
+    .object({
+      outcome: z.enum(OUTCOMES, { error: "Choose an outcome" }),
+      ptpDate: day.optional(),
+      ptpAmount: amount.optional(),
+      paidAmount: amount.optional(),
+      nextFollowUpOn: day.optional(),
+      remarks: z.string().trim().max(1000, "Keep remarks under 1000 characters").optional(),
+    })
+    .superRefine((v, ctx) => {
+      const need = (field: keyof typeof v, message: string) => {
+        if (v[field] === undefined || v[field] === "") ctx.addIssue({ code: "custom", path: [field], message });
+      };
+      if (v.outcome === "PTP") {
+        need("ptpDate", "Enter the promised date");
+        need("ptpAmount", "Enter the promised amount");
+      }
+      if (v.outcome === "PAID" || v.outcome === "PART_PAID") need("paidAmount", "Enter the amount paid");
+      if (v.outcome === "PART_PAID" || v.outcome === "CALLBACK") need("nextFollowUpOn", "Pick the next follow-up date");
+      if (v.outcome === "REFUSED_DISPUTE" || v.outcome === "WRONG_NUMBER") need("remarks", "Remarks are required for this outcome");
+      for (const field of ["ptpDate", "nextFollowUpOn"] as const) {
+        const value = v[field];
+        if (value && value < today) ctx.addIssue({ code: "custom", path: [field], message: "Date can't be in the past" });
+      }
+    })
+    .transform((v) => ({
+      outcome: v.outcome,
+      ptpDate: v.outcome === "PTP" ? v.ptpDate : undefined,
+      ptpAmount: v.outcome === "PTP" ? v.ptpAmount : undefined,
+      paidAmount: v.outcome === "PAID" || v.outcome === "PART_PAID" ? v.paidAmount : undefined,
+      nextFollowUpOn: v.outcome === "PART_PAID" || v.outcome === "CALLBACK" || v.outcome === "NOT_REACHABLE" ? v.nextFollowUpOn : undefined,
+      remarks: v.remarks || undefined,
+    }));
+
+export type DispositionFormInput = z.input<ReturnType<typeof buildDispositionSchema>>;
+export type DispositionValues = z.output<ReturnType<typeof buildDispositionSchema>>;

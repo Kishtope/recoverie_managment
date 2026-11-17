@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { prisma } from "@/lib/prisma";
-import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/jwt";
+import { requireUser } from "@/lib/auth";
 
-// Returns the signed-in user (from the cookie's token) for the sidebar footer.
+// Returns the signed-in user (role, access and agency come from the DB) for the sidebar and role checks.
 export const GET = async () => {
-  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
-  const claims = token ? verifyAccessToken(token) : null;
-  if (!claims) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-
-  const user = await prisma.user.findUnique({ where: { id: claims.sub } });
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  return NextResponse.json({ user: auth.user });
 };

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/jwt";
 
 // Pages reachable without a session; everything else requires a valid access token.
-const PUBLIC_PATHS = ["/sign-in", "/sign-up"];
+const PUBLIC_PATHS = ["/sign-in"];
 
 // Gates pages on the JWT cookie: guests go to /sign-in, signed-in users are kept off the auth pages.
 export const proxy = (request: NextRequest) => {

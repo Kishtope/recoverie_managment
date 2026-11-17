@@ -1,9 +1,6 @@
-import React from 'react'
+import { HomeView } from "@/features/dashboard/_components/home-view";
 
-const HomePage = () => {
-  return (
-    <div>HomePage</div>
-  )
-}
+// Thin page: the view chooses the dashboard for the signed-in role.
+const HomePage = () => <HomeView />;
 
-export default HomePage
+export default HomePage;

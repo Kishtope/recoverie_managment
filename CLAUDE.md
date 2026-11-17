@@ -56,17 +56,9 @@ Package manager is **bun** (`packageManager: bun@1.4.4`) — use `bun add` / `bu
 
 Already installed: Next.js 16 (App Router), React 19, Tailwind v4, shadcn (`base-vega` style on `@base-ui/react`), `lucide-react`, `next-themes`, `recharts`, `date-fns`, `class-variance-authority`.
 
-**Not installed yet — install before writing any API code:**
+Also installed: `@tanstack/react-query` (v5, server state), `axios` (one shared instance in `lib/axios.ts`), `zod` (forms and API payloads), `bcryptjs`, Prisma 7 (MySQL, mariadb adapter).
 
-```bash
-bun add @tanstack/react-query axios zod
-```
-
-- `@tanstack/react-query` (v5) — server state: queries and mutations.
-- `axios` — HTTP client (one shared instance, see below).
-- `zod` — validate forms and API payloads.
-
-If a task needs a library that isn't in `package.json`, say so and install it rather than importing it blindly. Note: `src/features/auth/_components/sign-in-form.tsx` is currently a scaffold — it references `useNavigate` (react-router, not available in Next), `useSignIn`, `@/lib/http` and `@/lib/jwt`, none of which exist yet. Use `next/navigation` (`useRouter`) instead and build the missing pieces following the rules below.
+If a task needs a library that isn't in `package.json`, say so and install it rather than importing it blindly.
 
 ## Project structure
 
@@ -131,7 +123,16 @@ Every page that lists data in a table (Parcels, Stationery, Library, …) must f
 
 ## Calling backend APIs (TanStack Query + axios)
 
-The app talks to an **external backend over HTTP with a JWT access token** (the sign-in response returns `accessToken`; the `role` claim decides where the user lands, e.g. `admin`). There are no Next.js route handlers for business data. All client-side API calls go through TanStack Query v5 + axios, layered per feature. Check the TanStack Query docs (Context7) for v5 API details before writing non-trivial usage.
+The backend is **this app's own Next.js route handlers (`src/app/api/**`) + Prisma + MySQL**. Auth is an httpOnly JWT cookie (`lib/session.ts`, `lib/jwt.ts`); the browser sends it automatically. Client-side API calls go through TanStack Query v5 + axios, layered per feature. Check the TanStack Query docs (Context7) for v5 API details before writing non-trivial usage.
+
+**Server rules (every route handler):**
+
+- Use `requireUser(roles?)` from `@/lib/auth`: `const auth = await requireUser(["ADMIN"]); if ("error" in auth) return auth.error;` (401 if signed out/disabled, 403 if the role is not allowed). It reads the user, role and company/branch access **from the DB**, never from the JWT, so role changes and disabling apply immediately.
+- Scope data with `userScopeWhere(user)` (Prisma `where`: Admin all, Manager own team + branches, Agency owner own agency, Agent/Field agent only self). UI role checks are display only.
+- Validate bodies with zod (`features/<feature>/schemas.ts`) and return 400/401/403/409 with `{ error }`.
+- Record create / role change / disable / export with `logAudit(...)` from `@/lib/audit`.
+- Schema changes go through `bun run db:migrate` (never `db push`); seed dev data with `bun run db:seed`.
+- There is no public sign-up; only an Admin creates users (Team page).
 
 ### Flow
 
@@ -140,22 +141,20 @@ app/**/page.tsx                                  thin page, renders a feature vi
   -> features/<feature>/_components/*-view.tsx   UI; consumes hooks only
     -> features/<feature>/hooks/use-*.ts         TanStack hooks (queries, mutations, toasts)
       -> features/<feature>/api/index.ts         axios functions only
-        -> lib/axios.ts                          shared axios instance (base URL + auth header)
-          -> external backend
+        -> lib/axios.ts                          shared axios instance
+          -> /api route handlers -> Prisma -> MySQL
 ```
 
 - Components never call axios directly and never show toasts — hooks own both.
 - Request/response types live in `features/<feature>/types.ts`.
 
-### Setup (to create — none of this exists yet)
+### Setup (already in place)
 
-- `components/providers/query-provider.tsx` — a `"use client"` provider holding one `QueryClient` (create it with `useState` so it isn't shared across requests; 30s `staleTime`, no retry on 4xx). Mount it in `app/layout.tsx` inside `ThemeProvider`, around `children`.
-- `lib/axios.ts` — exports the shared instance `api`: `baseURL: process.env.NEXT_PUBLIC_API_URL`, request interceptor adds `Authorization: Bearer <accessToken>`, response interceptor handles 401 (clear the session and redirect to `/sign-in`). Add `NEXT_PUBLIC_API_URL` to `.env.local` and document it in `README.md`.
-- `lib/jwt.ts` — `decodeAccessToken(token)` returning the claims (`role`, expiry). It only decodes for UI routing; the backend is the authority on permissions.
-- `lib/get-error-message.ts` — `getErrorMessage(error, fallback)`: prefers the backend's error text from `error.response.data`, then `error.message`, then `fallback`. Hooks use it for toasts — do not re-define it elsewhere.
-- Token storage: decide once, in `lib/` (prefer an httpOnly cookie set by the backend; if it has to be client-side, wrap it in a single `session` helper). Never read or write the token outside that helper.
-- Paths passed to `api` are relative to the base URL (`"/logs"`, not the full URL).
+- `components/providers/query-provider.tsx` — the `QueryClient` provider, mounted in `app/layout.tsx`.
+- `lib/axios.ts` — shared instance `api` with `baseURL: "/api"`; paths passed to it are relative (`"/logs"`).
+- `lib/get-error-message.ts` — `getErrorMessage(error, fallback)`; hooks use it for toasts — do not re-define it.
 - Toasts: import `toast` from `@/components/ui/toast` and call `toast.add({ title, description, type })`.
+- Pages in `(app)` fall back to `(app)/error.tsx` (shared `ErrorView` with retry); wrap views that read URL params in `<Suspense fallback={<LoadingView />}>`.
 
 ### API functions — `features/<feature>/api/index.ts`
 

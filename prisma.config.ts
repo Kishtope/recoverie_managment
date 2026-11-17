@@ -7,5 +7,6 @@ const url = `mysql://${DB_USER}:${encodeURIComponent(DB_PASSWORD ?? "")}@${DB_HO
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
+  migrations: { path: "prisma/migrations", seed: "bun prisma/seed.ts" },
   datasource: { url },
 });

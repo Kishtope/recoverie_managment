@@ -11,7 +11,9 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "test": "bun test"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -27,6 +29,7 @@
     "date-fns": "^4.4.0",
     "dotenv": "^18.0.10",
     "embla-carousel-react": "^8.6.0",
+    "exceljs": "^4.4.0",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.73.0",
     "mariadb": "^3.5.5",
@@ -43,6 +46,7 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
+    "@types/bun": "^1.4.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
