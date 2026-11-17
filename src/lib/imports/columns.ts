@@ -29,13 +29,22 @@ const ALLOCATION_COLUMNS = {
   validTill: ["validtill", "validuntil", "expireson"],
 } as const;
 
+const PAYMENT_COLUMNS = {
+  agreementNo: LOAN_COLUMNS.agreementNo,
+  amount: ["amount", "paidamount", "paymentamount", "collectedamount", "collection"],
+  paidOn: ["paidon", "paymentdate", "paiddate", "receiptdate", "collectiondate", "date"],
+  mode: ["mode", "paymentmode", "paymenttype"],
+  receiptNo: ["receiptno", "receiptnumber", "receipt", "transactionid", "utr"],
+} as const;
+
 // Fields a file must have a column for; the rest are optional and a blank cell leaves the stored value untouched.
 const REQUIRED: Record<ImportType, string[]> = {
   LOANS: ["agreementNo", "customerName", "company", "branch"],
   ALLOCATIONS: ["agreementNo", "hubUserId"],
+  PAYMENTS: ["agreementNo", "amount", "paidOn"],
 };
 
-const COLUMNS: Record<ImportType, Record<string, readonly string[]>> = { LOANS: LOAN_COLUMNS, ALLOCATIONS: ALLOCATION_COLUMNS };
+const COLUMNS: Record<ImportType, Record<string, readonly string[]>> = { LOANS: LOAN_COLUMNS, ALLOCATIONS: ALLOCATION_COLUMNS, PAYMENTS: PAYMENT_COLUMNS };
 
 // Lowercases a header and strips everything but letters and digits for alias matching.
 const normalizeHeader = (header: string) => header.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -72,5 +81,7 @@ const REQUIRED_LABELS: Record<string, string> = {
   company: "Company",
   branch: "Branch",
   hubUserId: "Hub User ID",
+  amount: "Amount",
+  paidOn: "Paid On",
 };
 export const columnLabel = (field: string) => REQUIRED_LABELS[field] ?? field;

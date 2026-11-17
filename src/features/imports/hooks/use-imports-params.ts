@@ -2,7 +2,7 @@ import { useUrlListParams, type FilterConfig } from "@/hooks/use-url-list-params
 
 // Imports filters kept in the URL (?type=&status=&page=); defaults are never written. Declared once so the hook sees a stable object.
 const IMPORTS_FILTERS: FilterConfig = {
-  type: { default: "all", values: ["all", "LOANS", "ALLOCATIONS"] },
+  type: { default: "all", values: ["all", "LOANS", "ALLOCATIONS", "PAYMENTS"] },
   status: { default: "all", values: ["all", "DONE", "FAILED", "RUNNING"] },
 };
 

@@ -5,7 +5,7 @@ import { getErrorMessage } from "@/lib/get-error-message";
 import { addDisposition } from "../api";
 
 // Describes what a saved outcome did to the case, so the agent sees the automatic follow-up rules working.
-const describeEffects = (e: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean }) => {
+const describeEffects = (e: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean; callLinked: boolean }) => {
   const parts: string[] = [];
   if (e.nextFollowUpOn) parts.push(`Follow-up set for ${format(parse(e.nextFollowUpOn, "yyyy-MM-dd", new Date()), "dd MMM")}`);
   if (e.escalated) parts.push("Escalated to manager");
@@ -23,6 +23,9 @@ export const useAddDisposition = () => {
       queryClient.invalidateQueries({ queryKey: ["get-loan", vars.loanId] });
       queryClient.invalidateQueries({ queryKey: ["get-loans"] });
       queryClient.invalidateQueries({ queryKey: ["agent-dashboard"] });
+      // The outcome may have cleared a call that was waiting for one (banner, call list, case page).
+      queryClient.invalidateQueries({ queryKey: ["get-pending-call"] });
+      queryClient.invalidateQueries({ queryKey: ["get-calls"] });
       toast.add({ title: "Outcome saved", description: describeEffects(result.effects), type: "success" });
     },
     onError: (error) => {

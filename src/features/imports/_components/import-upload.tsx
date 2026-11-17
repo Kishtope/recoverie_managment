@@ -16,6 +16,7 @@ import { ImportSummary } from "./import-summary";
 const KINDS: { value: ImportKind; label: string; template: string }[] = [
   { value: "LOANS", label: "Loans", template: "/templates/loans.csv" },
   { value: "ALLOCATIONS", label: "Allocations", template: "/templates/allocations.csv" },
+  { value: "PAYMENTS", label: "Payments", template: "/templates/payments.csv" },
 ];
 
 /**
@@ -62,7 +63,7 @@ export const ImportUpload = ({ onOpenErrors, className }: { onOpenErrors: (runId
             <DownloadIcon data-icon="inline-start" />
             Download template
           </Button>
-          <p className="text-sm text-muted-foreground">Import Loans first, then Allocations.</p>
+          <p className="text-sm text-muted-foreground">Import Loans first, then Allocations and Payments.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

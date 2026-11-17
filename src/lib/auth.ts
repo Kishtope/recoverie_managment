@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ACCESS_COOKIE, verifyAccessToken } from "@/lib/jwt";
 import type { CurrentUser } from "@/lib/access";
 
-export { loanScopeWhere, userScopeWhere } from "@/lib/access";
+export { callScopeWhere, loanScopeWhere, userScopeWhere } from "@/lib/access";
 export type { CurrentUser } from "@/lib/access";
 
 // Reads the session cookie, then loads the user from the DB so role changes and disabling apply at once.

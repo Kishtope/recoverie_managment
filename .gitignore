@@ -47,3 +47,5 @@ prompts/
 # Local issue screenshots
 /img-issue/
 docs/
+# database backups (scripts/backup-db.ts)
+/backups/

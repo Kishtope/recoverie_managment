@@ -1,11 +1,12 @@
 import type { ImportRun, ImportType, Prisma } from "@/generated/prisma/client";
-import { allocationRowSchema, describeIssue, loanRowSchema } from "@/features/imports/schemas";
+import { allocationRowSchema, describeIssue, loanRowSchema, paymentRowSchema } from "@/features/imports/schemas";
 import type { ImportRowError, ImportRunItem } from "@/features/imports/types";
 import { logAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { applyAllocations, type ValidAllocationRow } from "./allocations";
 import type { RawRow } from "./columns";
 import { applyLoans, type ValidLoanRow } from "./loans";
+import { applyPayments, type ValidPaymentRow } from "./payments";
 import type { ApplyResult } from "./shared";
 
 // A RUNNING run older than this is treated as dead (server crashed mid-import) and no longer blocks new imports.
@@ -20,6 +21,8 @@ export const hasRunningImport = async () =>
 export const validate = <T extends { agreementNo: string }>(
   rows: RawRow[],
   parse: (values: Record<string, string>) => { data?: T; error?: string },
+  // Payments files repeat an agreement no. (one row per payment); Loans / Allocations files must not.
+  allowRepeats = false,
 ): { valid: { row: number; data: T }[]; errors: ImportRowError[] } => {
   const valid: { row: number; data: T }[] = [];
   const errors: ImportRowError[] = [];
@@ -31,7 +34,7 @@ export const validate = <T extends { agreementNo: string }>(
       errors.push({ row, agreementNo, reason: result.error ?? "Invalid row" });
       continue;
     }
-    const first = seen.get(result.data.agreementNo);
+    const first = allowRepeats ? undefined : seen.get(result.data.agreementNo);
     if (first !== undefined) {
       errors.push({ row, agreementNo, reason: `Duplicate agreement no. in this file (first on row ${first})` });
       continue;
@@ -56,6 +59,17 @@ export const executeImport = async ({ type, fileName, userId, rows }: { type: Im
       });
       checked = v;
       written = await applyLoans(v.valid as ValidLoanRow[], run.id);
+    } else if (type === "PAYMENTS") {
+      const v = validate(
+        rows,
+        (values) => {
+          const r = paymentRowSchema.safeParse(values);
+          return r.success ? { data: r.data } : { error: describeIssue(r.error) };
+        },
+        true,
+      );
+      checked = v;
+      written = await applyPayments(v.valid as ValidPaymentRow[], run.id);
     } else {
       const v = validate(rows, (values) => {
         const r = allocationRowSchema.safeParse(values);

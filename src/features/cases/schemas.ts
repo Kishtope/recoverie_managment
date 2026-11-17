@@ -44,3 +44,7 @@ export const buildDispositionSchema = (today: string = todayIst()) =>
 
 export type DispositionFormInput = z.input<ReturnType<typeof buildDispositionSchema>>;
 export type DispositionValues = z.output<ReturnType<typeof buildDispositionSchema>>;
+
+// Body of POST /api/loans/[id]/reassign: the agent the case moves to.
+export const reassignSchema = z.object({ agentId: z.string().min(1, "Choose an agent") });
+export type ReassignInput = z.infer<typeof reassignSchema>;

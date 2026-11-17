@@ -72,6 +72,8 @@ export const useUrlListParams = (config: FilterConfig) => {
   }, [searchInput, write]);
 
   const setFilter = (key: string, value: string) => write(withFilter(params, key, value));
+  // Changes several filters in ONE write (two setFilter calls in a row would overwrite each other); the page goes back to 1.
+  const setFilters = (patch: Record<string, string>) => write({ ...params, filters: { ...params.filters, ...patch }, page: 1 });
   const setPage = (page: number) => write({ ...params, page });
   const clearFilters = () => {
     setSearchInput("");
@@ -79,5 +81,5 @@ export const useUrlListParams = (config: FilterConfig) => {
   };
   const hasActiveFilters = !!params.q || Object.entries(config).some(([key, { default: def }]) => params.filters[key] !== def);
 
-  return { ...params, searchInput, setSearchInput, setFilter, setPage, clearFilters, hasActiveFilters };
+  return { ...params, searchInput, setSearchInput, setFilter, setFilters, setPage, clearFilters, hasActiveFilters };
 };

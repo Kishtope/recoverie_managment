@@ -33,6 +33,14 @@ export const userScopeWhere = (user: CurrentUser): Prisma.UserWhereInput => {
   }
 };
 
+// Prisma `where` for the Call table limited to what `user` may see. An agent sees only their own calls; everyone else sees calls
+// placed by users in their user scope or made on loans in their loan scope. Admin sees all (including inbound calls matched to no loan).
+export const callScopeWhere = (user: CurrentUser): Prisma.CallWhereInput => {
+  if (user.role === "ADMIN") return {};
+  if (user.role === "AGENT") return { agentId: user.id };
+  return { OR: [{ agent: userScopeWhere(user) }, { loan: loanScopeWhere(user) }] };
+};
+
 // Prisma `where` for the Loan table limited to what `user` may see. Ownership follows the ACTIVE allocation only,
 // so an agent whose case was reassigned stops seeing it. Admin: all. Manager: their team's cases + loans in their company/branch grants.
 // Agency owner: their agency's cases. Agent: only cases allocated to them.

@@ -26,12 +26,28 @@ const toNumber = (text: string) => (text.trim() === "" ? undefined : Number(text
  * @description Form for recording what happened on a case. Only the fields the chosen outcome needs are shown; the same zod
  * schema the API uses validates it. The hook shows the toast; this only closes the dialog on success.
  * @param loanId The case the outcome belongs to.
+ * @param initialOutcome Outcome chosen when the form first mounts (a missed call opens it as "Not reachable"). The parent remounts the
+ * dialog (new key) each time it opens, so this is only read once.
  */
-export const OutcomeFormDialog = ({ loanId, open, onOpenChange }: { loanId: string; open: boolean; onOpenChange: (open: boolean) => void }) => {
+export const OutcomeFormDialog = ({
+  loanId,
+  open,
+  onOpenChange,
+  initialOutcome,
+}: {
+  loanId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialOutcome?: string;
+}) => {
   const { mutate, isPending } = useAddDisposition();
-  const [values, setValues] = useState<Values>(EMPTY);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const today = todayIst();
+  const [values, setValues] = useState<Values>(() => ({
+    ...EMPTY,
+    outcome: initialOutcome ?? "",
+    nextFollowUpOn: initialOutcome === "NOT_REACHABLE" ? addDays(today, 1) : "",
+  }));
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const set = (field: keyof Values, value: string) => setValues((v) => ({ ...v, [field]: value }));
 

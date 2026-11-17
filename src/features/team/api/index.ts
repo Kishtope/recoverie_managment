@@ -26,3 +26,9 @@ export const updateUser = async ({ id, ...input }: UpdateUserInput & { id: strin
   const { data } = await api.patch<{ user: TeamUser }>(`/users/${id}`, input);
   return data.user;
 };
+
+// Active agents (and agency owners) the caller may see, for filters and the Reassign dialog.
+export const getScopeAgents = async () => {
+  const { data } = await api.get<{ agents: { id: string; name: string }[] }>("/users/agents");
+  return data.agents;
+};

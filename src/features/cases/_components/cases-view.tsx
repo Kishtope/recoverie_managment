@@ -12,7 +12,7 @@ import { EntityPagination } from "@/components/entity-components/entity-paginati
 import { EntitySearch } from "@/components/entity-components/entity-search";
 import { ErrorView } from "@/components/entity-components/error-view";
 import { LoadingView } from "@/components/entity-components/loading-view";
-import { FilterSelect } from "@/components/filter-select";
+import { FilterSheet, type FilterField } from "@/components/filter-sheet";
 import { useMe } from "@/features/auth/hooks/use-me";
 import { useTeamOptions } from "@/features/team/hooks/use-team-options";
 import { BRANCHES, COMPANIES, OUTCOMES, OUTCOME_LABELS } from "@/lib/constants";
@@ -82,6 +82,14 @@ export const CasesView = () => {
   const from = data && data.total ? (data.page - 1) * data.pageSize + 1 : 0;
   const to = data ? Math.min(data.page * data.pageSize, data.total) : 0;
 
+  // Filters kept out of the toolbar (they open in the Filters sheet); which ones exist depends on the role.
+  const fields: FilterField[] = [
+    { key: "outcome", label: "Last outcome", options: OUTCOME_OPTIONS, value: params.filters.outcome },
+    ...(isAdmin ? [{ key: "agent", label: "Agent", options: agentOptions, value: params.filters.agent }] : []),
+    ...(canSeeFlags ? [{ key: "flag", label: "Flag", options: FLAG_OPTIONS, value: params.filters.flag }] : []),
+    ...(!isAgent ? [{ key: "company", label: "Company", options: COMPANY_OPTIONS, value: params.filters.company }, { key: "branch", label: "Branch", options: BRANCH_OPTIONS, value: params.filters.branch }] : []),
+  ];
+
   const toolbar = (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -95,11 +103,7 @@ export const CasesView = () => {
             <ToggleGroupItem key={o.value} value={o.value}>{o.label}</ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <FilterSelect value={params.filters.outcome} onChange={(v) => params.setFilter("outcome", v)} options={OUTCOME_OPTIONS} ariaLabel="Filter by last outcome" />
-        {isAdmin && <FilterSelect value={params.filters.agent} onChange={(v) => params.setFilter("agent", v)} options={agentOptions} ariaLabel="Filter by agent" />}
-        {canSeeFlags && <FilterSelect value={params.filters.flag} onChange={(v) => params.setFilter("flag", v)} options={FLAG_OPTIONS} ariaLabel="Filter by flag" />}
-        {!isAgent && <FilterSelect value={params.filters.company} onChange={(v) => params.setFilter("company", v)} options={COMPANY_OPTIONS} ariaLabel="Filter by company" />}
-        {!isAgent && <FilterSelect value={params.filters.branch} onChange={(v) => params.setFilter("branch", v)} options={BRANCH_OPTIONS} ariaLabel="Filter by branch" />}
+        <FilterSheet fields={fields} onChange={params.setFilter} onClear={params.clearFilters} description="Narrow the list of cases." />
         {params.hasActiveFilters && <Button variant="ghost" size="sm" onClick={params.clearFilters}>Clear filters</Button>}
         <EntitySearch value={params.searchInput} onChange={params.setSearchInput} placeholder="Search name, agreement, mobile" />
       </div>

@@ -19,7 +19,7 @@ export const GET = async (req: Request) => {
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(sp.get("pageSize") ?? "10", 10) || 10));
 
   const where: Prisma.ImportRunWhereInput = {
-    ...(type === "LOANS" || type === "ALLOCATIONS" ? { type } : {}),
+    ...(type === "LOANS" || type === "ALLOCATIONS" || type === "PAYMENTS" ? { type } : {}),
     ...(status === "RUNNING" || status === "DONE" || status === "FAILED" ? { status } : {}),
   };
   const [runs, total] = await Promise.all([

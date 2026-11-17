@@ -22,7 +22,7 @@ import { UnmatchedHubUsers } from "./unmatched-hub-users";
 const PAGE_SIZE = 10;
 
 // Toolbar options; "all" is the default and never appears in the URL.
-const TYPE_OPTIONS = [{ value: "all", label: "All types" }, { value: "LOANS", label: "Loans" }, { value: "ALLOCATIONS", label: "Allocations" }];
+const TYPE_OPTIONS = [{ value: "all", label: "All types" }, { value: "LOANS", label: "Loans" }, { value: "ALLOCATIONS", label: "Allocations" }, { value: "PAYMENTS", label: "Payments" }];
 const STATUS_OPTIONS = [{ value: "all", label: "Any status" }, { value: "DONE", label: "Done" }, { value: "FAILED", label: "Failed" }];
 
 // One filter as an always-one-selected ToggleGroup (a re-click that would empty it is ignored).

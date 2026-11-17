@@ -1,5 +1,5 @@
 // Shapes shared by the imports API and screen.
-export type ImportKind = "LOANS" | "ALLOCATIONS";
+export type ImportKind = "LOANS" | "ALLOCATIONS" | "PAYMENTS";
 export type ImportRunStatus = "RUNNING" | "DONE" | "FAILED";
 
 // One rejected row; never contains mobile numbers. `hubUserId` is set when the hub user has no app account.

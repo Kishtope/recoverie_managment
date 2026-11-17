@@ -14,7 +14,10 @@ export const GET = async () => {
   const scope = loanScopeWhere(auth.user);
   const monthStartIst = new Date(`${monthStart(today)}T00:00:00+05:30`);
 
-  const [totalCases, todayFollowUps, overdueFollowUps, duePtpLoans, due, collected] = await Promise.all([
+  const dayStartIst = new Date(`${today}T00:00:00+05:30`);
+  const callsToday = { agentId: auth.user.id, direction: "OUTBOUND" as const, startedAt: { gte: dayStartIst } };
+
+  const [totalCases, todayFollowUps, overdueFollowUps, duePtpLoans, due, collected, missedCallbacks, callsTotal, callsConnected] = await Promise.all([
     prisma.loan.count({ where: scope }),
     prisma.loan.count({ where: { AND: [scope, followUpWhere("today", today)] } }),
     prisma.loan.count({ where: { AND: [scope, followUpWhere("overdue", today)] } }),
@@ -28,6 +31,9 @@ export const GET = async () => {
       where: { agentId: auth.user.id, outcome: { in: ["PAID", "PART_PAID"] }, createdAt: { gte: monthStartIst } },
       _sum: { paidAmount: true },
     }),
+    prisma.call.count({ where: { agentId: auth.user.id, direction: "INBOUND", status: "MISSED", callbackResolvedAt: null } }),
+    prisma.call.count({ where: callsToday }),
+    prisma.call.count({ where: { ...callsToday, status: "CONNECTED" } }),
   ]);
 
   const body: AgentDashboard = {
@@ -36,6 +42,8 @@ export const GET = async () => {
     overdueFollowUps,
     duePtps: { count: duePtpLoans.length, amount: duePtpLoans.reduce((sum, l) => sum + (l.dispositions[0]?.ptpAmount?.toNumber() ?? 0), 0) },
     dueAmount: due._sum.overdueAmount?.toNumber() ?? 0,
+    missedCallbacks,
+    callsToday: { connected: callsConnected, total: callsTotal },
     collectedThisMonth: collected._sum.paidAmount?.toNumber() ?? 0,
   };
   return NextResponse.json(body);

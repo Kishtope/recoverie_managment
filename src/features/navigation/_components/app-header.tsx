@@ -10,13 +10,19 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/features/auth/hooks/use-me";
+import { NotificationBell } from "@/features/notifications/_components/notification-bell";
 import { ROLE_LABELS } from "@/lib/constants";
 
 // Display names for the first URL segment of each module; unknown segments fall back to a capitalised slug.
 const SECTION_TITLES: Record<string, string> = {
+  calls: "Calls",
   cases: "Cases",
+  cutover: "Cut-over",
   "follow-ups": "Follow-ups",
   imports: "Imports",
+  performance: "Team performance",
+  recovery: "Recovery",
+  settings: "Settings",
   team: "Team",
 };
 
@@ -27,7 +33,7 @@ const getCrumbs = (pathname: string, isAgent: boolean): Crumb[] => {
   const [section, id] = pathname.split("/").filter(Boolean);
   if (!section) return [{ label: "Dashboard" }];
 
-  const sectionLabel = section === "cases" && isAgent ? "My cases" : (SECTION_TITLES[section] ?? section.charAt(0).toUpperCase() + section.slice(1));
+  const sectionLabel = section === "cases" && isAgent ? "My cases" : section === "calls" && isAgent ? "My calls" : (SECTION_TITLES[section] ?? section.charAt(0).toUpperCase() + section.slice(1));
   const trail: Crumb[] = [{ label: "Dashboard", href: "/" }];
   if (id) {
     trail.push({ label: sectionLabel, href: `/${section}` }, { label: "Details" });
@@ -73,6 +79,8 @@ export const AppHeader = () => {
           })}
         </BreadcrumbList>
       </Breadcrumb>
+
+      <NotificationBell />
 
       <div className="hidden shrink-0 items-center gap-3 sm:flex">
         <span className="text-sm text-muted-foreground">{format(new Date(), "EEE, dd MMM yyyy")}</span>

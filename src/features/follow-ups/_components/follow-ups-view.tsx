@@ -3,6 +3,7 @@
 import { EntityContainer } from "@/components/entity-components/entity-container";
 import { EntityHeader } from "@/components/entity-components/entity-header";
 import { FollowUpSection } from "./follow-up-section";
+import { MissedCallsSection } from "./missed-calls-section";
 
 /**
  * @component FollowUpsView
@@ -11,6 +12,7 @@ import { FollowUpSection } from "./follow-up-section";
 export const FollowUpsView = () => (
   <EntityContainer header={<EntityHeader title="Follow-ups" description="Who to call next, grouped by day." />}>
     <div className="flex min-w-0 flex-col gap-4">
+      <MissedCallsSection />
       <FollowUpSection title="Overdue" followUp="overdue" viewAllFilter="overdue" />
       <FollowUpSection title="Today" followUp="today" viewAllFilter="today" />
       <FollowUpSection title="Next 7 days" followUp="next7" viewAllFilter="upcoming" groupByDay />

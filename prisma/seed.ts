@@ -1,4 +1,7 @@
 import { prisma } from "../src/lib/prisma";
+import { maskMobile } from "../src/lib/mask";
+import { notificationKey } from "../src/lib/notifications";
+import { paymentDedupeKey } from "../src/lib/imports/payments";
 import { hashPassword } from "../src/lib/password";
 import { addDays, toDbDate, todayIst } from "../src/lib/dates";
 import { planDispositionEffects, type DispositionInput } from "../src/lib/dispositions";
@@ -104,6 +107,72 @@ const main = async () => {
         data: { ...next, nextFollowUpOn: next.nextFollowUpOn ? toDbDate(next.nextFollowUpOn) : null },
       });
       state = next;
+    }
+  }
+  // Dummy payments (this and last month) and notifications so the manager dashboard, charts and the bell have data. Re-running is safe:
+  // payments and notifications both carry a dedupe key, so duplicates are skipped.
+  const seedLoan = async (n: number) => prisma.loan.findUnique({ where: { agreementNo: `SEED-${String(n).padStart(4, "0")}` } });
+  const payRows: [number, number, number, string][] = [ // [loan no, days ago, amount, receipt]
+    [8, 3, 20000, "R-S-1"], [2, 5, 1500, "R-S-2"], [4, 1, 2000, "R-S-3"], [1, 35, 800, "R-S-4"], [6, 2, 1200, "R-S-5"],
+  ];
+  for (const [n, daysAgo, amount, receiptNo] of payRows) {
+    const loan = await seedLoan(n);
+    if (!loan) continue;
+    const paidOn = toDbDate(addDays(today, -daysAgo));
+    await prisma.payment.createMany({
+      data: [{ loanId: loan.id, amount, paidOn, mode: "UPI", receiptNo, dedupeKey: paymentDedupeKey(loan.id, paidOn, amount, receiptNo) }],
+      skipDuplicates: true,
+    });
+  }
+  const noteRows: [string, "FOLLOW_UP_DUE" | "PTP_DUE" | "ESCALATION", number][] = [
+    [agent1.id, "PTP_DUE", 4], [agent1.id, "FOLLOW_UP_DUE", 1], [owner.id, "ESCALATION", 5],
+  ];
+  for (const [userId, type, n] of noteRows) {
+    const loan = await seedLoan(n);
+    if (!loan) continue;
+    const item = { userId, type, loanId: loan.id, day: today };
+    await prisma.notification.createMany({
+      data: [{ userId, type, entity: "loan", entityId: loan.id, dedupeKey: notificationKey(item) }],
+      skipDuplicates: true,
+    });
+  }
+
+  // Dummy calls (provider MOCK) so Calls, History, Follow-ups "Missed calls" and the dashboard have data. Per agent: 2 answered and 1 missed
+  // (each tied to an existing outcome, so nobody starts with a call waiting for an outcome), 1 failed, and 2 customer missed-calls (1 called back).
+  for (const [h, holder] of holders.entries()) {
+    const marker = `mock_seed_${h}_`;
+    if ((await prisma.call.count({ where: { providerCallId: { startsWith: marker } } })) > 0) continue;
+    const mine = await prisma.loan.findMany({
+      where: { agreementNo: { in: [h + 1, h + 4, h + 7].map((n) => `SEED-${String(n).padStart(4, "0")}`) } },
+      include: { customer: true },
+      orderBy: { agreementNo: "asc" },
+    });
+    const [l0, l1] = mine;
+    if (!l0 || !l1) continue;
+    // Unlinked outcomes of this agent's cases, oldest first; NOT_REACHABLE ones are kept for the missed call.
+    const pool = await prisma.disposition.findMany({ where: { agentId: holder.user.id, callId: null }, orderBy: { createdAt: "asc" } });
+    const answered = pool.filter((d) => d.outcome !== "NOT_REACHABLE");
+    let notReachable = pool.find((d) => d.outcome === "NOT_REACHABLE");
+    // Seed-only: an agent with no "not reachable" outcome gets one history row (the loan's follow-up state is left alone).
+    notReachable ??= await prisma.disposition.create({ data: { loanId: l0.id, agentId: holder.user.id, outcome: "NOT_REACHABLE", createdAt: new Date(Date.now() - 5 * 3600_000) } });
+    const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3600_000);
+    const base = (k: number, loan: typeof l0, status: "CONNECTED" | "MISSED" | "FAILED", startedAt: Date, extra: object = {}) => ({
+      provider: "MOCK" as const, providerCallId: `${marker}${k}`, direction: "OUTBOUND" as const, status, loanId: loan.id, agentId: holder.user.id,
+      numberSlot: "primary", customerNumberMask: maskMobile(loan.customer.mobilePrimary), startedAt, ...extra,
+    });
+    const link = (dispositionId?: string) => (dispositionId ? { disposition: { connect: { id: dispositionId } } } : {});
+    await prisma.call.create({ data: { ...base(1, l1, "CONNECTED", hoursAgo(6), { answeredAt: hoursAgo(6), endedAt: hoursAgo(6), durationSec: 45 }), ...link(answered[0]?.id) } });
+    await prisma.call.create({ data: { ...base(2, l0, "CONNECTED", hoursAgo(4), { answeredAt: hoursAgo(4), endedAt: hoursAgo(4), durationSec: 180 }), ...link((answered[1] ?? pool.find((d) => d.outcome === "NOT_REACHABLE" && d.id !== notReachable.id))?.id) } });
+    await prisma.call.create({ data: { ...base(3, l0, "MISSED", hoursAgo(5), { endedAt: hoursAgo(5) }), ...link(notReachable.id) } });
+    await prisma.call.create({ data: base(4, l1, "FAILED", hoursAgo(3), { endedAt: hoursAgo(3), failureReason: "Agent did not pick up" }) });
+    for (const [k, loan, resolved] of [[5, l0, true], [6, l1, false]] as const) {
+      await prisma.call.create({
+        data: {
+          provider: "MOCK", providerCallId: `${marker}${k}`, direction: "INBOUND", status: "MISSED", loanId: loan.id, agentId: holder.user.id,
+          customerNumberMask: maskMobile(loan.customer.mobilePrimary), startedAt: hoursAgo(k === 5 ? 8 : 2), endedAt: hoursAgo(k === 5 ? 8 : 2),
+          callbackResolvedAt: resolved ? hoursAgo(7) : null,
+        },
+      });
     }
   }
   console.log("Seeded. Password for all users:", PASSWORD);

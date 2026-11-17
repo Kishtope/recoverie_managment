@@ -8,13 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signInSchema } from "../schemas";
 import { useSignIn } from "../hooks/use-sign-in";
+import { OtpSignInForm } from "./otp-sign-in-form";
 import { PasswordInput } from "./password-input";
 
 /**
  * @component SignInForm
- * @description Email + password sign-in card.
+ * @description Sign-in card with two ways in: email + password (everyone) and mobile + code (agents).
  */
 export const SignInForm = () => {
   const router = useRouter();
@@ -37,9 +39,15 @@ export const SignInForm = () => {
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
-        <CardDescription>Enter your email and password to continue.</CardDescription>
+        <CardDescription>Choose how you sign in.</CardDescription>
       </CardHeader>
       <CardContent>
+        <Tabs defaultValue="password" className="gap-4">
+          <TabsList className="w-full">
+            <TabsTrigger value="password">Email</TabsTrigger>
+            <TabsTrigger value="otp">Mobile code</TabsTrigger>
+          </TabsList>
+          <TabsContent value="password">
         <form onSubmit={onSubmit} noValidate>
           <FieldGroup>
             <Field data-invalid={!!errors.email}>
@@ -64,6 +72,11 @@ export const SignInForm = () => {
             <p className="text-center text-sm text-muted-foreground">Accounts are created by an admin.</p>
           </FieldGroup>
         </form>
+          </TabsContent>
+          <TabsContent value="otp">
+            <OtpSignInForm />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

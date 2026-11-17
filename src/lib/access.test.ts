@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { loanScopeWhere, userScopeWhere, type CurrentUser } from "./access";
+import { callScopeWhere, loanScopeWhere, userScopeWhere, type CurrentUser } from "./access";
 
 const base: CurrentUser = { id: "u1", name: "U", email: null, role: "AGENT", agencyId: null, agency: null, access: [] };
 
@@ -39,4 +39,11 @@ test("loan scope for agency owner and manager", () => {
       { company: "AF", branch: "Balaghat" },
     ],
   });
+});
+
+test("call scope: agent sees only their own calls, admin all, manager their users' or loans' calls", () => {
+  expect(callScopeWhere(base)).toEqual({ agentId: "u1" });
+  expect(callScopeWhere({ ...base, role: "ADMIN" })).toEqual({});
+  const manager = { ...base, role: "MANAGER" as const };
+  expect(callScopeWhere(manager)).toEqual({ OR: [{ agent: userScopeWhere(manager) }, { loan: loanScopeWhere(manager) }] });
 });

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { format, parse } from "date-fns";
-import { ArrowLeftIcon, CalendarClockIcon, MapPinIcon, PhoneIcon, PlusIcon, UserRoundIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarClockIcon, MapPinIcon, PhoneIcon, PlusIcon, UserRoundIcon, UsersRoundIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,16 @@ import { ErrorView } from "@/components/entity-components/error-view";
 import { LoadingView } from "@/components/entity-components/loading-view";
 import { FollowUpBadge } from "@/components/follow-up-badge";
 import { OutcomeBadge } from "@/components/outcome-badge";
+import { CallButton } from "@/features/calls/_components/call-button";
+import { CallPanel } from "@/features/calls/_components/call-panel";
 import { formatInr } from "@/lib/format";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { getInitials } from "@/lib/get-initials";
+import type { CallItem } from "@/features/calls/types";
 import { useGetLoan } from "../hooks/use-get-loan";
 import { DispositionHistory } from "./disposition-history";
 import { OutcomeFormDialog } from "./outcome-form-dialog";
+import { ReassignDialog } from "./reassign-dialog";
 
 // One labelled value in a details card; empty optional values show as "-".
 const Detail = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -40,12 +44,20 @@ const Stat = ({ label, value, emphasis }: { label: string; value: ReactNode; emp
  * @component CaseDetailView
  * @description One case laid out for action: a profile header with flags, a strip of the four numbers that matter (overdue, DPD, EMI, pending EMIs),
  * the outcome timeline on the left, and next step, customer and loan details on the right (stacked on phones).
- * The "Add outcome" button appears only for the agent the case is allocated to; on phones it is pinned to the bottom of the screen.
+ * The "Call" and "Add outcome" buttons appear only for the agent the case is allocated to; on phones they are pinned to the bottom of the screen.
+ * A live call shows as a panel under the header, and the outcome form opens by itself when the call is answered or missed.
  * @param id The loan id from the route.
  */
 export const CaseDetailView = ({ id }: { id: string }) => {
   const { data: loan, isPending, isError, error } = useGetLoan(id);
   const [formOpen, setFormOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  // Bumped each time the form opens so it remounts fresh; a missed call opens it as "Not reachable".
+  const [seed, setSeed] = useState<{ key: number; outcome?: string }>({ key: 0 });
+  const openOutcomeForm = (call?: CallItem) => {
+    setSeed((s) => ({ key: s.key + 1, outcome: call?.status === "MISSED" ? "NOT_REACHABLE" : undefined }));
+    setFormOpen(true);
+  };
 
   if (isPending) return <LoadingView message="Loading case…" />;
   if (isError) return <ErrorView message={getErrorMessage(error, "Couldn't load this case.")} />;
@@ -71,13 +83,41 @@ export const CaseDetailView = ({ id }: { id: string }) => {
               </p>
             </div>
           </div>
-          {loan.canAddOutcome && (
-            <Button variant="accent" size="lg" className="hidden md:inline-flex" onClick={() => setFormOpen(true)}>
-              <PlusIcon data-icon="inline-start" />
-              Add outcome
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {loan.canReassign && (
+              <Button variant="outline" size="lg" onClick={() => setReassignOpen(true)}>
+                <UsersRoundIcon data-icon="inline-start" />
+                Reassign
+              </Button>
+            )}
+            {loan.canAddOutcome && (
+              <div className="hidden items-center gap-2 md:flex">
+                <CallButton loanId={loan.id} primaryMask={loan.customer.mobilePrimary} altMask={loan.customer.mobileAlt} canCall={loan.canCall} />
+                <Button variant="outline" size="lg" onClick={() => openOutcomeForm()}>
+                  <PlusIcon data-icon="inline-start" />
+                  Add outcome
+                </Button>
+              </div>
+            )}
+          </div>
         </header>
+
+        {/* Why calling is off right now (outside 9 AM-7 PM, a call still needs its outcome...), with a link to that case when it is another one. */}
+        {loan.callBlocked && (
+          <p className="text-sm text-muted-foreground">
+            {loan.callBlocked.message}
+            {loan.callBlocked.pendingLoanId && loan.callBlocked.pendingLoanId !== loan.id && (
+              <>
+                {" "}
+                <Link href={`/cases/${loan.callBlocked.pendingLoanId}`} className="font-medium text-foreground underline">
+                  Open case
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+
+        {loan.currentCall && <CallPanel key={loan.currentCall.id} initial={loan.currentCall} loanId={loan.id} customerName={loan.customer.name} onAddOutcome={openOutcomeForm} />}
 
         <div className="flex flex-wrap items-center gap-2">
           <OutcomeBadge outcome={loan.lastOutcome} />
@@ -99,10 +139,10 @@ export const CaseDetailView = ({ id }: { id: string }) => {
           <Card>
             <CardHeader>
               <CardTitle>History</CardTitle>
-              <CardDescription>Every outcome recorded on this case, newest first.</CardDescription>
+              <CardDescription>Every call and outcome on this case, newest first.</CardDescription>
             </CardHeader>
             <CardContent>
-              <DispositionHistory items={loan.dispositions} />
+              <DispositionHistory items={loan.dispositions} calls={loan.calls} />
             </CardContent>
           </Card>
 
@@ -187,14 +227,16 @@ export const CaseDetailView = ({ id }: { id: string }) => {
       </div>
 
       {loan.canAddOutcome && (
-        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-background p-3 md:hidden">
-          <Button variant="accent" className="w-full" onClick={() => setFormOpen(true)}>
+        <div className="fixed inset-x-0 bottom-0 z-10 flex gap-2 border-t border-border bg-background p-3 md:hidden">
+          <CallButton className="flex-1" loanId={loan.id} primaryMask={loan.customer.mobilePrimary} altMask={loan.customer.mobileAlt} canCall={loan.canCall} />
+          <Button variant="outline" size="lg" className="flex-1" onClick={() => openOutcomeForm()}>
             <PlusIcon data-icon="inline-start" />
             Add outcome
           </Button>
         </div>
       )}
-      {loan.canAddOutcome && <OutcomeFormDialog loanId={loan.id} open={formOpen} onOpenChange={setFormOpen} />}
+      {loan.canReassign && <ReassignDialog loanId={loan.id} currentAgentId={loan.agent?.id ?? null} open={reassignOpen} onOpenChange={setReassignOpen} />}
+      {loan.canAddOutcome && <OutcomeFormDialog key={seed.key} loanId={loan.id} open={formOpen} onOpenChange={setFormOpen} initialOutcome={seed.outcome} />}
     </>
   );
 };

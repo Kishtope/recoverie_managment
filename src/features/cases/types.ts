@@ -1,3 +1,4 @@
+import type { CallItem } from "@/features/calls/types";
 import type { OUTCOMES } from "@/lib/constants";
 
 export type OutcomeCode = (typeof OUTCOMES)[number];
@@ -54,6 +55,14 @@ export type DispositionItem = {
   remarks: string | null;
   createdAt: string;
   agent: { id: string; name: string };
+  callId: string | null; // the call this outcome was recorded for, if any
+};
+
+// Why the Call button is off for the agent who owns the case (shown as a muted line next to it).
+export type CallBlocked = {
+  reason: "OUTSIDE_WINDOW" | "PENDING_OUTCOME" | "CALL_IN_PROGRESS" | "NO_NUMBER";
+  message: string;
+  pendingLoanId?: string; // the case whose call still needs an outcome, so the UI can link to it
 };
 
 // Full case for the detail page; every mobile number is masked on the server.
@@ -84,6 +93,14 @@ export type LoanDetail = {
   agent: { id: string; name: string } | null;
   // True only for the agent this case is currently allocated to (the only one who may add an outcome).
   canAddOutcome: boolean;
+  // Manager / Agency owner / Admin may move an active case to another agent in their scope.
+  canReassign: boolean;
+  // Calling: true only for the owning agent while the calling window is open, nothing waits for an outcome and the case is active.
+  canCall: boolean;
+  callBlocked: CallBlocked | null;
+  // This agent's ringing call on this case, or the answered/missed one still waiting for its outcome.
+  currentCall: CallItem | null;
+  calls: CallItem[];
   dispositions: DispositionItem[];
 };
 
@@ -92,5 +109,5 @@ export type LoanDetailResponse = { loan: LoanDetail };
 // What the server says a saved outcome did to the case, used for the confirmation toast.
 export type DispositionResult = {
   disposition: DispositionItem;
-  effects: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean };
+  effects: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean; callLinked: boolean };
 };

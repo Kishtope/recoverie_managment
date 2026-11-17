@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import type { DispositionFormInput } from "../schemas";
+import type { DispositionFormInput, ReassignInput } from "../schemas";
 import type { DispositionResult, LoanDetailResponse, LoanListQuery, LoanListResponse } from "../types";
 
 // Fetches one page of loans the caller may see; "all" filters are left out of the query.
@@ -18,5 +18,11 @@ export const getLoan = async (id: string) => {
 // Records an outcome on a case; `loanId` is the path, the rest is the body.
 export const addDisposition = async ({ loanId, ...body }: DispositionFormInput & { loanId: string }) => {
   const { data } = await api.post<DispositionResult>(`/loans/${loanId}/dispositions`, body);
+  return data;
+};
+
+// Moves a case to another agent (Manager / Agency owner / Admin).
+export const reassignLoan = async ({ loanId, ...body }: ReassignInput & { loanId: string }) => {
+  const { data } = await api.post<{ ok: true; agent: { id: string; name: string } }>(`/loans/${loanId}/reassign`, body);
   return data;
 };

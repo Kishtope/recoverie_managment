@@ -45,6 +45,7 @@ model User {
   ownedAgency  Agency?       @relation("AgencyOwner")
   allocations  Allocation[]  @relation("AgentAllocations")
   dispositions Disposition[] @relation("AgentDispositions")
+  calls        Call[]        @relation("AgentCalls")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -89,6 +90,7 @@ enum LoanStatus {
 enum ImportType {
   LOANS
   ALLOCATIONS
+  PAYMENTS
 }
 
 enum ImportStatus {
@@ -138,6 +140,8 @@ model Loan {
   fieldVisitFlag    Boolean       @default(false) // set after 3 not-reachable; Phase 2B builds the field queue from it
   escalatedAt       DateTime? // set by REFUSED_DISPUTE so a manager can see it
   dispositions      Disposition[]
+  calls             Call[]
+  payments          Payment[]
 
   @@index([company, branch])
   @@index([nextFollowUpOn])
@@ -201,7 +205,8 @@ model Disposition {
   loan           Loan      @relation(fields: [loanId], references: [id])
   agentId        String
   agent          User      @relation("AgentDispositions", fields: [agentId], references: [id])
-  callId         String? // Phase 3 links this to a Call
+  callId         String?   @unique // the call this outcome was recorded for (one call = one outcome); null for outcomes without a call
+  call           Call?     @relation(fields: [callId], references: [id])
   outcome        Outcome
   ptpDate        DateTime? @db.Date
   ptpAmount      Decimal?  @db.Decimal(12, 2)
@@ -212,4 +217,111 @@ model Disposition {
 
   @@index([loanId, createdAt])
   @@index([agentId, createdAt])
+}
+
+enum CallProvider {
+  MOCK
+  SARV
+}
+
+enum CallDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum CallStatus {
+  INITIATED
+  CONNECTED
+  MISSED
+  FAILED
+}
+
+// One phone call with a customer, placed or received through the telephony provider. Status only ever moves forward from INITIATED.
+model Call {
+  id                 String        @id @default(cuid())
+  provider           CallProvider
+  providerCallId     String?       @unique // set when the provider answers; the webhook upserts on it
+  direction          CallDirection
+  status             CallStatus    @default(INITIATED)
+  loanId             String? // null only for an inbound call whose number matched no loan
+  loan               Loan?         @relation(fields: [loanId], references: [id])
+  agentId            String? // the agent who placed it (OUTBOUND) or whose queue it lands in (INBOUND)
+  agent              User?         @relation("AgentCalls", fields: [agentId], references: [id])
+  numberSlot         String? // "primary" | "alt": which customer number was dialled (never the number itself)
+  customerNumberMask String? // masked, for display only
+  startedAt          DateTime      @default(now())
+  answeredAt         DateTime?
+  endedAt            DateTime?
+  durationSec        Int?
+  recordingUrl       String?       @db.Text // provider URL, only ever served through /api/calls/[id]/recording
+  failureReason      String?
+  callbackResolvedAt DateTime? // INBOUND MISSED: when the agent called back
+  rawEvents          Json? // last few provider payloads, for debugging the mapping
+  disposition        Disposition?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([agentId, startedAt])
+  @@index([loanId, startedAt])
+  @@index([direction, status, callbackResolvedAt])
+}
+
+// One payment received on a loan, brought in by the Payments import. The source of truth for "collected" on the dashboards.
+model Payment {
+  id          String   @id @default(cuid())
+  loanId      String
+  loan        Loan     @relation(fields: [loanId], references: [id])
+  amount      Decimal  @db.Decimal(12, 2)
+  paidOn      DateTime @db.Date
+  mode        String? // CASH / UPI / ... exactly as the file says (the hub format is not known yet)
+  receiptNo   String?
+  importRunId String?
+  dedupeKey   String   @unique // loan + day + amount + receipt, so re-uploading a file never doubles a payment
+  createdAt   DateTime @default(now())
+
+  @@index([loanId, paidOn])
+  @@index([paidOn])
+}
+
+// Admin-editable settings; a missing row means "use the default in lib/settings-defaults.ts".
+model AppSetting {
+  key         String   @id // e.g. "calling.window"
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+enum NotificationType {
+  FOLLOW_UP_DUE
+  PTP_DUE
+  ESCALATION
+  REASSIGNED
+}
+
+// An in-app message for one user about one loan; deduped so the morning job can run twice safely.
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  entity    String // "loan"
+  entityId  String
+  dedupeKey String           @unique // type|entityId|userId|yyyy-MM-dd
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+// A one-time login code sent to an agent's mobile. Only a hash is stored; the code itself is never saved.
+model OtpCode {
+  id         String    @id @default(cuid())
+  mobile     String
+  userId     String? // null when the mobile matched no active agent (kept so request limits still count)
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([mobile, createdAt])
 }

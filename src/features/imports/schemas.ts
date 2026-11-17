@@ -79,8 +79,38 @@ export const allocationRowSchema = z.object({
 });
 export type AllocationRow = z.infer<typeof allocationRowSchema>;
 
+// One row of the Payments file: a payment received on a loan (a loan can appear on many rows). Amount and date are required.
+export const paymentRowSchema = z.object({
+  agreementNo: z.string().trim().min(1, "Agreement no. is blank"),
+  amount: z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      const n = parseAmount(v);
+      if (n === null || n <= 0) {
+        ctx.issues.push({ code: "custom", message: "Amount must be more than 0", input: v });
+        return z.NEVER;
+      }
+      return n;
+    }),
+  paidOn: z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      const d = parseHubDate(v);
+      if (!d) {
+        ctx.issues.push({ code: "custom", message: "Invalid paid-on date", input: v });
+        return z.NEVER;
+      }
+      return d;
+    }),
+  mode: text,
+  receiptNo: text,
+});
+export type PaymentRow = z.infer<typeof paymentRowSchema>;
+
 // The upload form: which kind of file this is.
-export const importTypeSchema = z.enum(["LOANS", "ALLOCATIONS"], { error: "Choose Loans or Allocations" });
+export const importTypeSchema = z.enum(["LOANS", "ALLOCATIONS", "PAYMENTS"], { error: "Choose Loans, Allocations or Payments" });
 
 // First problem of a failed row as "field: message" for the error report.
 export const describeIssue = (error: z.ZodError) => {

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { DataTableColumn } from "@/components/data-table";
 import type { ImportRunItem } from "../types";
 
-const TYPE_LABELS = { LOANS: "Loans", ALLOCATIONS: "Allocations" } as const;
+const TYPE_LABELS = { LOANS: "Loans", ALLOCATIONS: "Allocations", PAYMENTS: "Payments" } as const;
 const STATUS_LABELS = { RUNNING: "Running", DONE: "Done", FAILED: "Failed" } as const;
 
 // Columns of the import runs table; `onOpen` shows the run's rejected rows.
