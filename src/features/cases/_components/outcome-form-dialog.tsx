@@ -4,9 +4,9 @@ import { useState } from "react";
 import { DatePicker } from "@/components/date-picker";
 import { FormDialog } from "@/components/form-dialog";
 import { Button } from "@/components/ui/button";
+import { FormSelect } from "@/components/form-select";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { OUTCOMES, OUTCOME_LABELS } from "@/lib/constants";
@@ -108,12 +108,14 @@ export const OutcomeFormDialog = ({
             <FieldLegend>Outcome</FieldLegend>
             <Field data-invalid={!!errors.outcome}>
               <FieldLabel htmlFor="outcome">Result of the conversation</FieldLabel>
-              <NativeSelect id="outcome" value={values.outcome} onChange={(e) => onOutcomeChange(e.target.value)} aria-invalid={!!errors.outcome}>
-                <NativeSelectOption value="">Choose an outcome</NativeSelectOption>
-                {OUTCOMES.map((code) => (
-                  <NativeSelectOption key={code} value={code}>{OUTCOME_LABELS[code]}</NativeSelectOption>
-                ))}
-              </NativeSelect>
+              <FormSelect
+                id="outcome"
+                value={values.outcome}
+                onChange={onOutcomeChange}
+                invalid={!!errors.outcome}
+                placeholder="Choose an outcome"
+                options={OUTCOMES.map((code) => ({ value: code, label: OUTCOME_LABELS[code] }))}
+              />
               {errors.outcome && <FieldError>{errors.outcome}</FieldError>}
             </Field>
           </FieldSet>

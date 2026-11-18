@@ -37,7 +37,7 @@ export const userScopeWhere = (user: CurrentUser): Prisma.UserWhereInput => {
 // placed by users in their user scope or made on loans in their loan scope. Admin sees all (including inbound calls matched to no loan).
 export const callScopeWhere = (user: CurrentUser): Prisma.CallWhereInput => {
   if (user.role === "ADMIN") return {};
-  if (user.role === "AGENT") return { agentId: user.id };
+  if (user.role === "AGENT" || user.role === "RECRUITER") return { agentId: user.id };
   return { OR: [{ agent: userScopeWhere(user) }, { loan: loanScopeWhere(user) }] };
 };
 
@@ -59,7 +59,14 @@ export const loanScopeWhere = (user: CurrentUser): Prisma.LoanWhereInput => {
       };
     case "AGENCY_OWNER":
       return active(user.agencyId ? { agencyId: user.agencyId } : { agentId: user.id });
+    case "RECRUITER":
+      // A recruiter keeps read access after a case escalates (project.md), so any allocation of theirs counts, not just the active one.
+      return { allocations: { some: { agentId: user.id } } };
     default:
       return active({ agentId: user.id });
   }
 };
+
+// Loans currently allocated to this user. Workers act (call, record outcomes, count on their dashboard) only on these; a recruiter whose
+// case escalated can still read it through loanScopeWhere but is no longer its owner.
+export const ownCaseWhere = (userId: string): Prisma.LoanWhereInput => ({ allocations: { some: { active: true, agentId: userId } } });

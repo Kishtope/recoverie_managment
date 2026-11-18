@@ -2,6 +2,8 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/stat-card";
+import { TargetProgress } from "@/components/target-progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { EntityContainer } from "@/components/entity-components/entity-container";
 import { EntityHeader } from "@/components/entity-components/entity-header";
 import { ErrorView } from "@/components/entity-components/error-view";
@@ -29,6 +31,31 @@ export const AgentDashboard = () => {
         <ErrorView message={getErrorMessage(error, "Couldn't load the dashboard.")} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {data.target && (
+            <Card className="sm:col-span-2 lg:col-span-3">
+              <CardContent className="flex flex-col gap-4">
+                <span className="kicker text-muted-foreground">My target this month</span>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {data.target.collectionAmount !== null && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm">
+                        <strong>{formatInr(data.target.collected)}</strong> of {formatInr(data.target.collectionAmount)} recovered
+                      </span>
+                      <TargetProgress pct={data.target.collectedPct} />
+                    </div>
+                  )}
+                  {data.target.casesResolved !== null && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm">
+                        <strong>{data.target.resolved}</strong> of {data.target.casesResolved} cases resolved
+                      </span>
+                      <TargetProgress pct={data.target.resolvedPct} />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <StatCard label="Today's follow-ups" value={String(data.todayFollowUps)} href="/cases?followUp=today" />
           <StatCard label="Overdue follow-ups" value={String(data.overdueFollowUps)} href="/cases?followUp=overdue" />
           <StatCard

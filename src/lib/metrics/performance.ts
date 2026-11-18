@@ -18,7 +18,7 @@ export const loadPerformance = async (user: CurrentUser, range: DayRange, agentI
   const to = new Date(`${addDays(range.to, 1)}T00:00:00+05:30`);
 
   const agents = await prisma.user.findMany({
-    where: { AND: [userScopeWhere(user), { role: { in: ["AGENT", "AGENCY_OWNER"] } }, agentId ? { id: agentId } : {}] },
+    where: { AND: [userScopeWhere(user), { role: { in: ["AGENT", "AGENCY_OWNER", "RECRUITER"] } }, agentId ? { id: agentId } : {}] },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

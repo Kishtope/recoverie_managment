@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { requireUser, loanScopeWhere } from "@/lib/auth";
 import { BRANCHES, COMPANIES, OUTCOMES } from "@/lib/constants";
 import { fromDbDate, todayIst } from "@/lib/dates";
-import { followUpWhere } from "@/lib/follow-up-where";
+import { followUpTabWhere, followUpWhere } from "@/lib/follow-up-where";
 import { maskMobile } from "@/lib/mask";
 import { prisma } from "@/lib/prisma";
 import type { LoanListItem } from "@/features/cases/types";
@@ -11,7 +11,7 @@ import type { LoanListItem } from "@/features/cases/types";
 // Lists loans the caller may see (by active allocation) with search, follow-up / outcome / flag / agent / company / branch filters and paging.
 // Default order: next follow-up first (no follow-up last), then higher DPD, then bigger overdue amount. Mobile numbers are masked.
 export const GET = async (req: Request) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"]);
   if ("error" in auth) return auth.error;
 
   const sp = new URL(req.url).searchParams;
@@ -42,8 +42,10 @@ export const GET = async (req: Request) => {
       company && (COMPANIES as readonly string[]).includes(company) ? { company: company as (typeof COMPANIES)[number] } : {},
       branch && (BRANCHES as readonly string[]).includes(branch) ? { branch } : {},
       followUpWhere(sp.get("followUp"), todayIst()),
+      // The agent Follow-ups page tabs (new / today / post / closed).
+      followUpTabWhere(sp.get("tab"), todayIst()),
       outcome && (OUTCOMES as readonly string[]).includes(outcome) ? { lastOutcome: outcome as (typeof OUTCOMES)[number] } : {},
-      flag === "field-visit" ? { fieldVisitFlag: true } : flag === "escalated" ? { escalatedAt: { not: null } } : {},
+      flag === "field-visit" ? { fieldVisitFlag: true } : flag === "escalated" ? { escalatedAt: { not: null } } : flag === "settlement-pending" ? { settlements: { some: { status: "PENDING" } } } : {},
     ],
   };
 
@@ -56,13 +58,15 @@ export const GET = async (req: Request) => {
         company: true,
         branch: true,
         dpd: true,
+        pendingEmis: true,
+        status: true,
         overdueAmount: true,
         lastOutcome: true,
         lastContactedAt: true,
         nextFollowUpOn: true,
         fieldVisitFlag: true,
         escalatedAt: true,
-        customer: { select: { name: true, mobilePrimary: true, area: true } },
+        customer: { select: { name: true, mobilePrimary: true, mobileAlt: true, area: true } },
         allocations: { where: { active: true }, take: 1, select: { assignedOn: true, agent: { select: { id: true, name: true } } } },
         dispositions: { orderBy: { createdAt: "desc" }, take: 1, select: { ptpAmount: true } },
       },
@@ -78,6 +82,9 @@ export const GET = async (req: Request) => {
     agreementNo: l.agreementNo,
     customerName: l.customer.name,
     mobile: maskMobile(l.customer.mobilePrimary),
+    mobileAlt: maskMobile(l.customer.mobileAlt),
+    pendingEmis: l.pendingEmis,
+    status: l.status,
     area: l.customer.area,
     company: l.company,
     branch: l.branch,

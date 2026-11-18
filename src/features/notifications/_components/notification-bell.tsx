@@ -21,6 +21,8 @@ const messageOf = (n: NotificationItem) => {
       return `Refused / disputed, needs a manager: ${who}`;
     case "REASSIGNED":
       return `Assigned to you: ${who}`;
+    case "RECRUITER_DEADLINE":
+      return `Your time on this case is almost up: ${who}`;
   }
 };
 

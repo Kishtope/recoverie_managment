@@ -48,3 +48,22 @@ export type DispositionValues = z.output<ReturnType<typeof buildDispositionSchem
 // Body of POST /api/loans/[id]/reassign: the agent the case moves to.
 export const reassignSchema = z.object({ agentId: z.string().min(1, "Choose an agent") });
 export type ReassignInput = z.infer<typeof reassignSchema>;
+
+// Body of POST /api/loans/[id]/compliance: a manager lifts a dispute pause or sets / clears the customer's do-not-call flag.
+export const complianceSchema = z.object({ action: z.enum(["RESOLVE_DISPUTE", "SET_DO_NOT_CALL", "CLEAR_DO_NOT_CALL"]) });
+export type ComplianceInput = z.infer<typeof complianceSchema>;
+
+// Body of POST /api/loans/bulk-reassign: up to 200 selected cases move to one agent.
+export const bulkReassignSchema = z.object({
+  loanIds: z.array(z.string().min(1)).min(1, "Select at least one case").max(200, "Select at most 200 cases at a time"),
+  agentId: z.string().min(1, "Choose an agent"),
+});
+export type BulkReassignInput = z.infer<typeof bulkReassignSchema>;
+
+// Body of POST /api/allocation/auto: split the unassigned cases between the chosen people by a rule; dryRun only previews.
+export const autoAllocateSchema = z.object({
+  rule: z.enum(["EQUAL", "BUCKET", "BRANCH", "AMOUNT"]),
+  agentIds: z.array(z.string().min(1)).min(1, "Choose at least one person").max(100, "Choose at most 100 people"),
+  dryRun: z.boolean().default(false),
+});
+export type AutoAllocateInput = z.input<typeof autoAllocateSchema>;

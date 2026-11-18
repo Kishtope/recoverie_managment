@@ -12,6 +12,7 @@ enum Role {
   MANAGER
   AGENCY_OWNER
   AGENT
+  RECRUITER // sourcing partner: works their own customers like an agent, but only for a limited number of days, then the case escalates
 }
 
 enum UserStatus {
@@ -68,6 +69,7 @@ model Agency {
   commissionPct Decimal?     @db.Decimal(5, 2)
   members       User[]       @relation("AgencyMembers")
   allocations   Allocation[]
+  batches       Batch[]
 }
 
 model AuditLog {
@@ -99,12 +101,56 @@ enum ImportStatus {
   FAILED
 }
 
+// A batch is a group of cases handed to a team together. CALL batches are worked by phone, FR (field recovery) batches by visits.
+enum BatchType {
+  CALL
+  FR
+}
+
+// Draft (being prepared) -> Open (ready to hand out) -> In progress (assigned, being worked) -> Closed.
+enum BatchStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+model Batch {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  type        BatchType
+  status      BatchStatus @default(DRAFT)
+  agencyId    String? // who works it once in progress; null = in-house
+  agency      Agency?     @relation(fields: [agencyId], references: [id])
+  assignedOn  DateTime? // set when the batch goes In progress; money collected is counted from here
+  closedAt    DateTime?
+  createdById String
+  loans       BatchLoan[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([type, status])
+  @@index([agencyId])
+}
+
+// One case inside a batch. Deleting a draft batch removes its rows; a case can sit in only one unfinished batch of each type (checked in code).
+model BatchLoan {
+  batchId String
+  batch   Batch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  loanId  String
+  loan    Loan   @relation(fields: [loanId], references: [id])
+
+  @@id([batchId, loanId])
+  @@index([loanId])
+}
+
 model Customer {
   id            String   @id @default(cuid())
   hubCustomerId String?  @unique // set when the hub export carries a customer id (open question)
   name          String
   mobilePrimary String?
   mobileAlt     String?
+  doNotCall     Boolean  @default(false) // customer asked not to be called; calls are blocked until an Admin / Manager clears it
   references    Json? // [{ name, relation, mobile }]
   address       String?  @db.Text
   pin           String?
@@ -142,6 +188,8 @@ model Loan {
   dispositions      Disposition[]
   calls             Call[]
   payments          Payment[]
+  batches           BatchLoan[]
+  settlements       Settlement[]
 
   @@index([company, branch])
   @@index([nextFollowUpOn])
@@ -162,6 +210,7 @@ model Allocation {
   validTill    DateTime?
   active       Boolean   @default(true)
   endedAt      DateTime?
+  endReason    String? // why it ended when not a plain reassign: "RECRUITER_ESCALATION"
   importRunId  String?
   createdAt    DateTime  @default(now())
 
@@ -276,6 +325,8 @@ model Payment {
   mode        String? // CASH / UPI / ... exactly as the file says (the hub format is not known yet)
   receiptNo   String?
   importRunId String?
+  source      String   @default("IMPORT") // "IMPORT" (payments file) or "MANUAL" (recorded in the app)
+  collectedById String? // who recorded a MANUAL payment
   dedupeKey   String   @unique // loan + day + amount + receipt, so re-uploading a file never doubles a payment
   createdAt   DateTime @default(now())
 
@@ -296,6 +347,7 @@ enum NotificationType {
   PTP_DUE
   ESCALATION
   REASSIGNED
+  RECRUITER_DEADLINE
 }
 
 // An in-app message for one user about one loan; deduped so the morning job can run twice safely.
@@ -324,4 +376,44 @@ model OtpCode {
   createdAt  DateTime  @default(now())
 
   @@index([mobile, createdAt])
+}
+
+enum SettlementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// A one-time settlement offer on a loan: the customer pays `requestedAmount` and the rest of the overdue (`waiverAmount`) is waived.
+// An agent asks; a Manager approves up to the Admin's limit (settlement.managerLimitPct), above that only an Admin can.
+model Settlement {
+  id              String           @id @default(cuid())
+  loanId          String
+  loan            Loan             @relation(fields: [loanId], references: [id])
+  requestedById   String
+  requestedAmount Decimal          @db.Decimal(12, 2)
+  waiverAmount    Decimal          @db.Decimal(12, 2) // overdue at request time minus requestedAmount
+  remarks         String?          @db.Text
+  status          SettlementStatus @default(PENDING)
+  decidedById     String?
+  decidedAt       DateTime?
+  decisionNote    String?          @db.Text
+  createdAt       DateTime         @default(now())
+
+  @@index([loanId, status])
+  @@index([status, createdAt])
+}
+
+// A monthly goal for one caller or recruiter: money to recover and / or cases to resolve. Either can be left empty. Set by an Admin or Manager.
+model AgentTarget {
+  id               String   @id @default(cuid())
+  userId           String
+  month            String // "yyyy-MM"
+  collectionAmount Decimal? @db.Decimal(12, 2)
+  casesResolved    Int?
+  updatedById      String?
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, month])
+  @@index([month])
 }

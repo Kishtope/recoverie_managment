@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireUser, loanScopeWhere } from "@/lib/auth";
+import { requireUser, ownCaseWhere } from "@/lib/auth";
 import { callingWindowMessage, isWithinCallingWindow } from "@/lib/calling-window";
+import { checkCallRules } from "@/lib/call-rules";
+import { countCallsToday } from "@/lib/calls-today";
 import { maskMobile } from "@/lib/mask";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
@@ -13,7 +15,7 @@ import { startCallSchema } from "@/features/calls/schemas";
 // closed (409) -> agent has no call waiting for an outcome (409) -> agent mobile (400) -> create the Call -> ask the provider.
 // The customer's real number is read from the DB here and goes only to the provider; the browser sends just "primary" or "alt".
 export const POST = async (req: Request) => {
-  const auth = await requireUser(["AGENT"]);
+  const auth = await requireUser(["AGENT", "RECRUITER"]);
   if ("error" in auth) return auth.error;
 
   const parsed = startCallSchema.safeParse(await req.json().catch(() => null));
@@ -25,11 +27,15 @@ export const POST = async (req: Request) => {
   if (!isWithinCallingWindow(new Date(), window)) return NextResponse.json({ error: callingWindowMessage(window) }, { status: 403 });
 
   const loan = await prisma.loan.findFirst({
-    where: { AND: [{ id: loanId }, loanScopeWhere(auth.user)] },
-    select: { status: true, customer: { select: { mobilePrimary: true, mobileAlt: true } } },
+    where: { AND: [{ id: loanId }, ownCaseWhere(auth.user.id)] },
+    select: { status: true, escalatedAt: true, customer: { select: { mobilePrimary: true, mobileAlt: true, doNotCall: true } } },
   });
   if (!loan) return NextResponse.json({ error: "Case not found" }, { status: 404 });
   if (loan.status === "CLOSED") return NextResponse.json({ error: "This loan is closed" }, { status: 409 });
+
+  // Compliance: dispute pause, do-not-call and the per-customer daily cap.
+  const blocked = checkCallRules({ disputed: !!loan.escalatedAt, doNotCall: loan.customer.doNotCall, callsToday: await countCallsToday(loanId) });
+  if (blocked) return NextResponse.json({ error: blocked.message, reason: blocked.reason }, { status: blocked.status });
 
   const pending = await findPendingCall(prisma, auth.user.id);
   if (pending) {

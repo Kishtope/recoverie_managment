@@ -11,7 +11,6 @@ import { EntityEmptyView } from "@/components/entity-components/entity-empty-vie
 import { EntityHeader } from "@/components/entity-components/entity-header";
 import { EntityPagination } from "@/components/entity-components/entity-pagination";
 import { ErrorView } from "@/components/entity-components/error-view";
-import { ExportMisButton } from "@/features/reports/_components/export-mis-button";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
 import { useGetTeamSummary, useGetTeamUsers } from "../hooks/use-team-dashboard";
@@ -40,10 +39,11 @@ export const TeamDashboard = () => {
   const data = summary.data;
   const totalPages = users.data ? Math.ceil(users.data.total / users.data.pageSize) : 0;
 
+  // TODO: Export Excel is hidden until the exported Daily MIS file is checked (it came out empty for some filters). Re-add: import ExportMisButton from "@/features/reports/_components/export-mis-button" and render <ExportMisButton query={params.query} />.
   return (
     <EntityContainer
       header={<EntityHeader title="Dashboard" description="How recovery is going across your team." />}
-      search={<TeamFilters params={params} actions={<ExportMisButton query={params.query} />} />}
+      search={<TeamFilters params={params} />}
     >
       {summary.isPending ? (
         <div className="flex flex-col gap-4">

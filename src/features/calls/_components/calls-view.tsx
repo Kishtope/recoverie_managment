@@ -1,5 +1,6 @@
 "use client";
 
+import { isWorkerRole } from "@/lib/constants";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -48,7 +49,7 @@ const UNMATCHED_OPTIONS = [
  */
 export const CallsView = () => {
   const { data: me } = useMe();
-  const isAgent = me?.role === "AGENT";
+  const isAgent = isWorkerRole(me?.role);
   const isAdmin = me?.role === "ADMIN";
 
   const params = useCallsParams();

@@ -1,6 +1,29 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { addDays, toDbDate } from "@/lib/dates";
 
+export const FOLLOW_UP_TABS = ["new", "today", "post", "closed"] as const;
+export type FollowUpTab = (typeof FOLLOW_UP_TABS)[number];
+
+// Prisma `where` for the four tabs of the agent's Follow-ups page, relative to `today` ("yyyy-MM-dd"):
+// new = active cases nobody has contacted yet; today = active, contacted, and due today or earlier (still to be called);
+// post = active, already called, next follow-up still ahead (or none); closed = closed loans.
+// Unknown values add no condition.
+export const followUpTabWhere = (tab: string | null | undefined, today: string): Prisma.LoanWhereInput => {
+  const t = toDbDate(today);
+  switch (tab) {
+    case "new":
+      return { status: "ACTIVE", lastContactedAt: null, nextFollowUpOn: null };
+    case "today":
+      return { status: "ACTIVE", nextFollowUpOn: { lte: t } };
+    case "post":
+      return { status: "ACTIVE", lastContactedAt: { not: null }, OR: [{ nextFollowUpOn: null }, { nextFollowUpOn: { gt: t } }] };
+    case "closed":
+      return { status: "CLOSED" };
+    default:
+      return {};
+  }
+};
+
 // Prisma `where` on Loan.nextFollowUpOn for a follow-up filter ("today", "overdue", ...), relative to `today` ("yyyy-MM-dd").
 // Unknown / "all" values add no condition. Shared by the cases list and the agent dashboard so their numbers always agree.
 export const followUpWhere = (kind: string | null | undefined, today: string): Prisma.LoanWhereInput => {

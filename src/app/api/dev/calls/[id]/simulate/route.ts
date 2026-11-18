@@ -9,7 +9,7 @@ import { simulateCallSchema } from "@/features/calls/schemas";
 // Does not exist (404) unless the mock provider is on and the build is not production.
 export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
   if (!devCallToolsEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const auth = await requireUser(["AGENT"]);
+  const auth = await requireUser(["AGENT", "RECRUITER"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

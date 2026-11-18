@@ -1,5 +1,8 @@
 import type { CallItem } from "@/features/calls/types";
 import type { OUTCOMES } from "@/lib/constants";
+import type { PaymentItem } from "@/features/payments/types";
+import type { SettlementItem } from "@/features/settlements/types";
+import type { CaseStatus, PtpStatus, RiskTag } from "@/lib/case-status";
 
 export type OutcomeCode = (typeof OUTCOMES)[number];
 
@@ -9,10 +12,13 @@ export type LoanListItem = {
   agreementNo: string;
   customerName: string;
   mobile: string | null;
+  mobileAlt: string | null;
   area: string | null;
   company: string;
   branch: string;
   dpd: number | null;
+  pendingEmis: number | null; // number of dues still pending
+  status: "ACTIVE" | "CLOSED";
   overdueAmount: number | null;
   agent: { id: string; name: string } | null;
   assignedOn: string | null;
@@ -30,7 +36,7 @@ export type LoanListResponse = { items: LoanListItem[]; total: number; page: num
 export const FOLLOW_UPS = ["all", "today", "overdue", "upcoming", "next7", "none"] as const;
 export type FollowUpFilter = (typeof FOLLOW_UPS)[number];
 
-export const FLAGS = ["all", "field-visit", "escalated"] as const;
+export const FLAGS = ["all", "field-visit", "escalated", "settlement-pending"] as const;
 
 export type LoanListQuery = {
   q: string;
@@ -40,6 +46,7 @@ export type LoanListQuery = {
   followUp: string;
   outcome: string;
   flag: string;
+  tab?: string; // Follow-ups page tab: new | today | post | closed
   page: number;
   pageSize: number;
 };
@@ -60,7 +67,7 @@ export type DispositionItem = {
 
 // Why the Call button is off for the agent who owns the case (shown as a muted line next to it).
 export type CallBlocked = {
-  reason: "OUTSIDE_WINDOW" | "PENDING_OUTCOME" | "CALL_IN_PROGRESS" | "NO_NUMBER";
+  reason: "OUTSIDE_WINDOW" | "PENDING_OUTCOME" | "CALL_IN_PROGRESS" | "NO_NUMBER" | "DISPUTE" | "DO_NOT_CALL" | "DAILY_LIMIT";
   message: string;
   pendingLoanId?: string; // the case whose call still needs an outcome, so the UI can link to it
 };
@@ -81,6 +88,20 @@ export type LoanDetail = {
   lastOutcome: OutcomeCode | null;
   fieldVisitFlag: boolean;
   escalatedAt: string | null;
+  caseStatus: CaseStatus; // derived lifecycle state (lib/case-status.ts)
+  ptpStatus: PtpStatus | null; // state of the most recent promise
+  riskTag: RiskTag;
+  doNotCall: boolean;
+  payments: PaymentItem[];
+  settlements: SettlementItem[];
+  // Agent / recruiter who owns the case, or a supervisor: may record a payment received.
+  canRecordPayment: boolean;
+  // Owning agent / recruiter with no open request and no dispute: may ask for a settlement.
+  canRequestSettlement: boolean;
+  // Set while a recruiter holds the case: the day their time runs out and how many days are left.
+  recruiterDeadline: { deadline: string; daysLeft: number; overdue: boolean } | null;
+  // Manager / Agency owner / Admin may resolve a dispute and set or clear do-not-call.
+  canManageCompliance: boolean;
   customer: {
     name: string;
     mobilePrimary: string | null;
@@ -110,4 +131,17 @@ export type LoanDetailResponse = { loan: LoanDetail };
 export type DispositionResult = {
   disposition: DispositionItem;
   effects: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean; callLinked: boolean };
+};
+
+// Result of POST /api/loans/bulk-reassign: how many cases moved and why the others did not.
+export type BulkReassignResult = { moved: number; skipped: { loanId: string; reason: string }[] };
+
+// Result of POST /api/allocation/auto (preview or real run): per-person totals and the cases nobody could take.
+export type AutoAllocateResult = {
+  dryRun: boolean;
+  totalUnassigned: number;
+  assigned: number;
+  unassigned: number;
+  capped: boolean; // true when more unassigned cases exist than one run handles
+  people: { agentId: string; name: string; cases: number; amount: number; buckets: Record<string, number> }[];
 };

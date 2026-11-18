@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UsersRoundIcon, WandSparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DataTable } from "@/components/data-table";
@@ -15,11 +16,13 @@ import { LoadingView } from "@/components/entity-components/loading-view";
 import { FilterSheet, type FilterField } from "@/components/filter-sheet";
 import { useMe } from "@/features/auth/hooks/use-me";
 import { useTeamOptions } from "@/features/team/hooks/use-team-options";
-import { BRANCHES, COMPANIES, OUTCOMES, OUTCOME_LABELS } from "@/lib/constants";
+import { BRANCHES, COMPANIES, OUTCOMES, OUTCOME_LABELS, isWorkerRole } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
 import { useCasesParams } from "../hooks/use-cases-params";
 import { useGetLoans } from "../hooks/use-get-loans";
+import { AutoAllocateDialog } from "./auto-allocate-dialog";
+import { BulkReassignDialog } from "./bulk-reassign-dialog";
 import { getCasesColumns } from "./cases-table";
 
 const PAGE_SIZE = 10;
@@ -32,6 +35,7 @@ const FLAG_OPTIONS = [
   { value: "all", label: "No flag filter" },
   { value: "field-visit", label: "Field visit flag" },
   { value: "escalated", label: "Escalated" },
+  { value: "settlement-pending", label: "Settlement waiting" },
 ];
 const FOLLOW_UP_OPTIONS = [
   { value: "all", label: "All" },
@@ -48,9 +52,16 @@ const FOLLOW_UP_OPTIONS = [
 export const CasesView = () => {
   const router = useRouter();
   const { data: me } = useMe();
-  const isAgent = me?.role === "AGENT";
+  const isAgent = isWorkerRole(me?.role);
   const isAdmin = me?.role === "ADMIN";
   const canSeeFlags = me?.role === "ADMIN" || me?.role === "MANAGER";
+  // Admin / Manager may run the allocation engine; they and Agency owners may reassign a selection (the API checks scope).
+  const canAllocate = canSeeFlags;
+  const canSelect = !!me && !isAgent;
+  // Case ids ticked in the table (kept while paging) and which dialog is open.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [allocateOpen, setAllocateOpen] = useState(false);
 
   const params = useCasesParams();
   const { data, isPending, isError, error, isPlaceholderData } = useGetLoans({
@@ -107,6 +118,16 @@ export const CasesView = () => {
         {params.hasActiveFilters && <Button variant="ghost" size="sm" onClick={params.clearFilters}>Clear filters</Button>}
         <EntitySearch value={params.searchInput} onChange={params.setSearchInput} placeholder="Search name, agreement, mobile" />
       </div>
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-card border border-border bg-card px-3 py-2">
+          <span className="text-sm font-medium">{selected.size} selected</span>
+          <Button size="sm" variant="outline" onClick={() => setBulkOpen(true)}>
+            <UsersRoundIcon data-icon="inline-start" />
+            Reassign
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear selection</Button>
+        </div>
+      )}
       {data && <p className="text-sm text-muted-foreground">{data.total ? `Showing ${from}–${to} of ${data.total} cases` : "No cases"}</p>}
     </div>
   );
@@ -117,6 +138,14 @@ export const CasesView = () => {
         <EntityHeader
           title={isAgent ? "My cases" : "Cases"}
           description={isAgent ? "Your allocated cases, next follow-up first." : "Loans and who each one is allocated to."}
+          actions={
+            canAllocate && (
+              <Button size="sm" variant="outline" onClick={() => setAllocateOpen(true)}>
+                <WandSparklesIcon data-icon="inline-start" />
+                Auto-allocate
+              </Button>
+            )
+          }
         />
       }
       search={toolbar}
@@ -144,8 +173,11 @@ export const CasesView = () => {
           rows={data.items}
           getRowKey={(l) => l.id}
           onRowClick={(l) => router.push(`/cases/${l.id}`)}
+          selection={canSelect ? { selected, onChange: setSelected } : undefined}
         />
       )}
+      {canAllocate && <AutoAllocateDialog open={allocateOpen} onOpenChange={setAllocateOpen} />}
+      {canSelect && <BulkReassignDialog loanIds={[...selected]} open={bulkOpen} onOpenChange={setBulkOpen} onDone={() => setSelected(new Set())} />}
     </EntityContainer>
   );
 };

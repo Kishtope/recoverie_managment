@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser, loanScopeWhere } from "@/lib/auth";
+import { requireUser, ownCaseWhere } from "@/lib/auth";
 import { fromDbDate, toDbDate, todayIst } from "@/lib/dates";
 import { planDispositionEffects } from "@/lib/dispositions";
 import { notify } from "@/lib/notifications";
@@ -9,10 +9,10 @@ import { findPendingCall } from "@/lib/telephony/pending";
 import { buildDispositionSchema } from "@/features/cases/schemas";
 import type { DispositionResult } from "@/features/cases/types";
 
-// Records an outcome on a case. Only the agent the case is currently allocated to may do this (loanScopeWhere = their active cases);
+// Records an outcome on a case. Only the agent the case is currently allocated to may do this (ownCaseWhere = their active cases);
 // anything else is a 404. The Disposition and the Loan's follow-up state change together in one transaction.
 export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["AGENT"]);
+  const auth = await requireUser(["AGENT", "RECRUITER"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 
@@ -27,7 +27,7 @@ export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> 
   const result = await prisma.$transaction(async (tx) => {
     // Re-read inside the transaction so the not-reachable streak is counted from the latest state.
     const loan = await tx.loan.findFirst({
-      where: { AND: [{ id }, loanScopeWhere(auth.user)] },
+      where: { AND: [{ id }, ownCaseWhere(auth.user.id)] },
       select: { status: true, notReachableCount: true, fieldVisitFlag: true, escalatedAt: true },
     });
     if (!loan) return { status: 404 as const };

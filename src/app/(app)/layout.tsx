@@ -1,6 +1,7 @@
 import { PendingCallBanner } from "@/features/calls/_components/pending-call-banner";
 import { AppHeader } from "@/features/navigation/_components/app-header";
 import { AppSidebar } from "@/features/navigation/_components/app-sidebar";
+import { IdleLogout } from "@/features/auth/_components/idle-logout";
 import { AuthGate } from "@/features/auth/_components/auth-gate";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
@@ -8,6 +9,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 // AuthGate shows the loading animation until the current user has loaded.
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <AuthGate>
+    <IdleLogout />
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="min-w-0">

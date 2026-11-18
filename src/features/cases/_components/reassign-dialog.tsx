@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { FormDialog } from "@/components/form-dialog";
+import { FormSelect } from "@/components/form-select";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
 import { useScopeAgents } from "@/features/team/hooks/use-scope-agents";
 import { useReassignLoan } from "../hooks/use-reassign-loan";
@@ -69,12 +69,15 @@ export const ReassignDialog = ({
         <FieldGroup>
           <Field data-invalid={!!error}>
             <FieldLabel htmlFor="reassign-agent">New agent</FieldLabel>
-            <NativeSelect id="reassign-agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} aria-invalid={!!error} disabled={loadingAgents}>
-              <NativeSelectOption value="">{loadingAgents ? "Loading agents…" : "Choose an agent"}</NativeSelectOption>
-              {(agents ?? []).filter((a) => a.id !== currentAgentId).map((a) => (
-                <NativeSelectOption key={a.id} value={a.id}>{a.name}</NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <FormSelect
+              id="reassign-agent"
+              value={agentId}
+              onChange={setAgentId}
+              invalid={!!error}
+              disabled={loadingAgents}
+              placeholder={loadingAgents ? "Loading agents…" : "Choose an agent"}
+              options={(agents ?? []).filter((a) => a.id !== currentAgentId).map((a) => ({ value: a.id, label: a.name }))}
+            />
             {error && <FieldError>{error}</FieldError>}
           </Field>
         </FieldGroup>

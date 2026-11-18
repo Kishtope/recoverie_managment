@@ -6,7 +6,7 @@ export type { ReadinessSummary, StaffMatch };
 export type CutoverUser = {
   id: string;
   name: string;
-  role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT";
+  role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT" | "RECRUITER";
   email: string | null;
   mobile: string | null;
   hubUserId: string | null;

@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { FormDialog } from "@/components/form-dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { FormSelect } from "@/components/form-select";
+import { MultiSelect } from "@/components/multi-select";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { PasswordGeneratorInput } from "@/components/password-generator-input";
 import { Spinner } from "@/components/ui/spinner";
 import { BRANCHES, COMPANIES, ROLES, ROLE_LABELS } from "@/lib/constants";
 import { createUserSchema, updateUserSchema } from "../schemas";
@@ -40,21 +41,22 @@ export const TeamFormDialog = ({
   const [access, setAccess] = useState<Set<string>>(new Set(user?.access.map(key)));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const toggle = (a: Access, on: boolean) =>
+  // Replaces one company's ticked branches, leaving the other companies' grants untouched.
+  const setCompanyBranches = (company: string, branches: readonly string[]) =>
     setAccess((prev) => {
-      const next = new Set(prev);
-      if (on) next.add(key(a));
-      else next.delete(key(a));
+      const next = new Set([...prev].filter((k) => !k.startsWith(`${company}|`)));
+      branches.forEach((branch) => next.add(key({ company, branch })));
       return next;
     });
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const input = {
       name: String(f.get("name")),
       email: String(f.get("email")),
-      mobile: String(f.get("mobile") ?? ""),
+      // No mobile field in the form any more; an existing number is sent back unchanged so editing a user never wipes it.
+      mobile: user?.mobile ?? "",
       password: String(f.get("password") ?? ""),
       role: String(f.get("role")),
       agencyId: String(f.get("agencyId") ?? ""),
@@ -107,15 +109,14 @@ export const TeamFormDialog = ({
               <Input id="email" name="email" type="email" defaultValue={user?.email ?? ""} aria-invalid={!!errors.email} />
               {errors.email && <FieldError>{errors.email}</FieldError>}
             </Field>
-            <Field data-invalid={!!errors.mobile}>
-              <FieldLabel htmlFor="mobile">Mobile</FieldLabel>
-              <Input id="mobile" name="mobile" inputMode="numeric" defaultValue={user?.mobile ?? ""} aria-invalid={!!errors.mobile} />
-              {errors.mobile && <FieldError>{errors.mobile}</FieldError>}
-            </Field>
             <Field data-invalid={!!errors.password}>
               <FieldLabel htmlFor="password">{user ? "New password" : "Password"}</FieldLabel>
-              <Input id="password" name="password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} />
-              {user && <FieldDescription>Leave blank to keep the current password.</FieldDescription>}
+              <PasswordGeneratorInput id="password" name="password" autoGenerate={!user} aria-invalid={!!errors.password} />
+              <FieldDescription>
+                {user
+                  ? "Leave blank to keep the current password, or press Reload to set a new one."
+                  : "Generated for you. Press Reload for another, then copy it and share it with the user. It cannot be viewed after saving."}
+              </FieldDescription>
               {errors.password && <FieldError>{errors.password}</FieldError>}
             </Field>
           </FieldSet>
@@ -124,31 +125,29 @@ export const TeamFormDialog = ({
             <FieldLegend>Role and reporting</FieldLegend>
             <Field>
               <FieldLabel htmlFor="role">Role</FieldLabel>
-              <NativeSelect id="role" name="role" defaultValue={user?.role ?? "AGENT"}>
-                {ROLES.map((r) => (
-                  <NativeSelectOption key={r} value={r}>{ROLE_LABELS[r]}</NativeSelectOption>
-                ))}
-              </NativeSelect>
+              <FormSelect id="role" name="role" defaultValue={user?.role ?? "AGENT"} options={ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] }))} />
             </Field>
             <Field>
               <FieldLabel htmlFor="agencyId">Agency</FieldLabel>
-              <NativeSelect id="agencyId" name="agencyId" defaultValue={user?.agency?.id ?? ""}>
-                <NativeSelectOption value="">None</NativeSelectOption>
-                {options?.agencies.map((a) => (
-                  <NativeSelectOption key={a.id} value={a.id}>{a.name}</NativeSelectOption>
-                ))}
-              </NativeSelect>
+              <FormSelect
+                id="agencyId"
+                name="agencyId"
+                defaultValue={user?.agency?.id ?? ""}
+                options={[{ value: "", label: "None" }, ...(options?.agencies ?? []).map((a) => ({ value: a.id, label: a.name }))]}
+              />
             </Field>
             <Field data-invalid={!!errors.reportsToId}>
               <FieldLabel htmlFor="reportsToId">Reports to</FieldLabel>
-              <NativeSelect id="reportsToId" name="reportsToId" defaultValue={user?.reportsTo?.id ?? ""} aria-invalid={!!errors.reportsToId}>
-                <NativeSelectOption value="">None (Admin only)</NativeSelectOption>
-                {options?.managers
-                  .filter((m) => m.id !== user?.id)
-                  .map((m) => (
-                    <NativeSelectOption key={m.id} value={m.id}>{m.name} · {ROLE_LABELS[m.role]}</NativeSelectOption>
-                  ))}
-              </NativeSelect>
+              <FormSelect
+                id="reportsToId"
+                name="reportsToId"
+                defaultValue={user?.reportsTo?.id ?? ""}
+                invalid={!!errors.reportsToId}
+                options={[
+                  { value: "", label: "None (Admin only)" },
+                  ...(options?.managers ?? []).filter((m) => m.id !== user?.id).map((m) => ({ value: m.id, label: `${m.name} · ${ROLE_LABELS[m.role]}` })),
+                ]}
+              />
               {errors.reportsToId && <FieldError>{errors.reportsToId}</FieldError>}
             </Field>
             <Field data-invalid={!!errors.hubUserId}>
@@ -161,24 +160,35 @@ export const TeamFormDialog = ({
 
           <FieldSet>
             <FieldLegend>Company and branch access</FieldLegend>
-            <div className="grid gap-3">
-              {COMPANIES.map((company) => (
-                <div key={company} className="grid gap-2">
-                  <span className="kicker">{company}</span>
-                  <div className="flex flex-wrap gap-x-4 gap-y-2">
-                    {BRANCHES.map((branch) => {
-                      const id = `${company}-${branch}`;
-                      return (
-                        <label key={id} htmlFor={id} className="flex items-center gap-2 text-sm">
-                          <Checkbox id={id} checked={access.has(key({ company, branch }))} onCheckedChange={(on) => toggle({ company, branch }, !!on)} />
-                          {branch}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <FieldDescription>Pick the branches this user can see for each company.</FieldDescription>
+            <FieldGroup className="gap-4">
+              {COMPANIES.map((company) => {
+                const picked = BRANCHES.filter((branch) => access.has(key({ company, branch })));
+                return (
+                  <Field key={company}>
+                    <div className="flex items-center justify-between gap-2">
+                      <FieldLabel htmlFor={`access-${company}`}>{company}</FieldLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCompanyBranches(company, picked.length === BRANCHES.length ? [] : [...BRANCHES])}
+                      >
+                        {picked.length === BRANCHES.length ? "Clear" : "Select all"}
+                      </Button>
+                    </div>
+                    <MultiSelect
+                      id={`access-${company}`}
+                      value={picked}
+                      onChange={(branches) => setCompanyBranches(company, branches)}
+                      options={BRANCHES.map((branch) => ({ value: branch, label: branch }))}
+                      placeholder="No access"
+                      allLabel="All branches"
+                    />
+                  </Field>
+                );
+              })}
+            </FieldGroup>
           </FieldSet>
         </FieldGroup>
       </form>

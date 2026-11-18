@@ -7,7 +7,7 @@ import { FilterSheet, type FilterField } from "@/components/filter-sheet";
 import { useMe } from "@/features/auth/hooks/use-me";
 import { useScopeAgents } from "@/features/team/hooks/use-scope-agents";
 import { useTeamOptions } from "@/features/team/hooks/use-team-options";
-import { BRANCHES, COMPANIES } from "@/lib/constants";
+import { BRANCHES, COMPANIES, isWorkerRole } from "@/lib/constants";
 import { DPD_BUCKETS, DPD_BUCKET_LABELS, type DpdBucket } from "@/lib/dpd-bucket";
 import { fyMonths, recentFys } from "@/lib/fy";
 import type { useTeamParams } from "../hooks/use-team-params";
@@ -27,7 +27,7 @@ const withAll = (all: string, options: Option[]): Option[] => [{ value: "all", l
 export const TeamFilters = ({ params, actions }: { params: ReturnType<typeof useTeamParams>; actions?: ReactNode }) => {
   const { data: me } = useMe();
   const isAdmin = me?.role === "ADMIN";
-  const { data: agents } = useScopeAgents(!!me && me.role !== "AGENT");
+  const { data: agents } = useScopeAgents(!!me && !isWorkerRole(me.role));
   const { data: options } = useTeamOptions(isAdmin);
   const f = params.filters;
 

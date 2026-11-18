@@ -11,16 +11,18 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/features/auth/hooks/use-me";
 import { NotificationBell } from "@/features/notifications/_components/notification-bell";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, isWorkerRole } from "@/lib/constants";
 
 // Display names for the first URL segment of each module; unknown segments fall back to a capitalised slug.
 const SECTION_TITLES: Record<string, string> = {
+  batches: "Batches",
   calls: "Calls",
   cases: "Cases",
   cutover: "Cut-over",
   "follow-ups": "Follow-ups",
   imports: "Imports",
   performance: "Team performance",
+  scorecards: "Scorecards",
   recovery: "Recovery",
   settings: "Settings",
   team: "Team",
@@ -51,7 +53,7 @@ const getCrumbs = (pathname: string, isAgent: boolean): Crumb[] => {
 export const AppHeader = () => {
   const pathname = usePathname();
   const { data: me, isPending } = useMe();
-  const crumbs = getCrumbs(pathname, me?.role === "AGENT");
+  const crumbs = getCrumbs(pathname, isWorkerRole(me?.role));
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur supports-backdrop-filter:bg-background/70">

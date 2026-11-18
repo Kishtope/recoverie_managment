@@ -1,9 +1,10 @@
+import { isWorkerRole } from "@/lib/constants";
 import { maskMobile } from "@/lib/mask";
 
 // ---- Is each user ready for go-live? ----
 
 export type ReadinessUser = {
-  role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT";
+  role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT" | "RECRUITER";
   email: string | null;
   mobile: string | null;
   hubUserId: string | null;
@@ -18,7 +19,7 @@ export type Readiness = { checks: ReadinessChecks; problems: string[]; ready: bo
 // What a user needs before go-live. Agents sign in and get called with their mobile and are matched to allocations by hub user id;
 // everyone else signs in with an email. Everybody must have signed in once (that is how we know the login really works for them).
 export const userReadiness = (user: ReadinessUser): Readiness => {
-  const agent = user.role === "AGENT";
+  const agent = isWorkerRole(user.role);
   const checks: ReadinessChecks = {
     mobile: agent ? !!user.mobile : null,
     email: agent ? null : !!user.email,

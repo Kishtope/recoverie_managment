@@ -8,6 +8,7 @@ const notified: Record<string, unknown>[] = [];
 mock.module("@/lib/auth", () => ({
   requireUser: async () => ({ user: { id: "agent1", name: "Asha", role: "AGENT" } }),
   loanScopeWhere: () => ({}),
+  ownCaseWhere: () => ({}),
 }));
 const tx = {
   loan: {

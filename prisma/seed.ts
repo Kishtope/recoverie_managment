@@ -4,6 +4,9 @@ import { notificationKey } from "../src/lib/notifications";
 import { paymentDedupeKey } from "../src/lib/imports/payments";
 import { hashPassword } from "../src/lib/password";
 import { addDays, toDbDate, todayIst } from "../src/lib/dates";
+import { seedBatches } from "./seed-batches";
+import { seedFollowUps } from "./seed-follow-ups";
+import { seedRemap } from "./seed-remap";
 import { planDispositionEffects, type DispositionInput } from "../src/lib/dispositions";
 
 // Dev/test data: one user of each role, one agency, branches spread out. Safe to re-run (upserts by email).
@@ -175,6 +178,9 @@ const main = async () => {
       });
     }
   }
+  await seedBatches();
+  await seedFollowUps();
+  await seedRemap(PASSWORD);
   console.log("Seeded. Password for all users:", PASSWORD);
 };
 

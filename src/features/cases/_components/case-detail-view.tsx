@@ -11,8 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { ErrorView } from "@/components/entity-components/error-view";
 import { LoadingView } from "@/components/entity-components/loading-view";
+import { CaseStatusBadge, PtpStatusBadge, RiskTagBadge } from "@/components/case-status-badge";
 import { FollowUpBadge } from "@/components/follow-up-badge";
 import { OutcomeBadge } from "@/components/outcome-badge";
+import { PaymentsCard } from "@/features/payments/_components/payments-card";
+import { SettlementsCard } from "@/features/settlements/_components/settlements-card";
 import { CallButton } from "@/features/calls/_components/call-button";
 import { CallPanel } from "@/features/calls/_components/call-panel";
 import { formatInr } from "@/lib/format";
@@ -20,6 +23,7 @@ import { getErrorMessage } from "@/lib/get-error-message";
 import { getInitials } from "@/lib/get-initials";
 import type { CallItem } from "@/features/calls/types";
 import { useGetLoan } from "../hooks/use-get-loan";
+import { ComplianceActions } from "./compliance-actions";
 import { DispositionHistory } from "./disposition-history";
 import { OutcomeFormDialog } from "./outcome-form-dialog";
 import { ReassignDialog } from "./reassign-dialog";
@@ -84,6 +88,7 @@ export const CaseDetailView = ({ id }: { id: string }) => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <ComplianceActions loan={loan} />
             {loan.canReassign && (
               <Button variant="outline" size="lg" onClick={() => setReassignOpen(true)}>
                 <UsersRoundIcon data-icon="inline-start" />
@@ -120,6 +125,15 @@ export const CaseDetailView = ({ id }: { id: string }) => {
         {loan.currentCall && <CallPanel key={loan.currentCall.id} initial={loan.currentCall} loanId={loan.id} customerName={loan.customer.name} onAddOutcome={openOutcomeForm} />}
 
         <div className="flex flex-wrap items-center gap-2">
+          <CaseStatusBadge status={loan.caseStatus} />
+          <PtpStatusBadge status={loan.ptpStatus} />
+          <RiskTagBadge tag={loan.riskTag} />
+          {loan.doNotCall && <Badge variant="destructive">Do not call</Badge>}
+          {loan.recruiterDeadline && (
+            <Badge variant={loan.recruiterDeadline.daysLeft <= 2 ? "destructive" : "secondary"}>
+              {loan.recruiterDeadline.overdue ? "Escalating today" : `${loan.recruiterDeadline.daysLeft} ${loan.recruiterDeadline.daysLeft === 1 ? "day" : "days"} left with recruiter`}
+            </Badge>
+          )}
           <OutcomeBadge outcome={loan.lastOutcome} />
           <FollowUpBadge day={loan.nextFollowUpOn} />
           {loan.fieldVisitFlag && <Badge variant="outline">Field visit pending</Badge>}
@@ -162,6 +176,9 @@ export const CaseDetailView = ({ id }: { id: string }) => {
                 </div>
               </CardContent>
             </Card>
+
+            <PaymentsCard loanId={loan.id} payments={loan.payments} canRecord={loan.canRecordPayment} />
+            <SettlementsCard loanId={loan.id} settlements={loan.settlements} canRequest={loan.canRequestSettlement} overdue={loan.overdueAmount} />
 
             <Card>
               <CardHeader>

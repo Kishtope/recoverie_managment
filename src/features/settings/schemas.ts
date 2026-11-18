@@ -11,6 +11,9 @@ export const updateSettingsSchema = z
       .refine((w) => w.startHour < w.endHour, { message: "Closing hour must be after the opening hour", path: ["endHour"] }),
     "followUp.notReachableTries": z.number({ error: "Enter a number" }).int("Whole numbers only").min(1, "At least 1").max(10, "At most 10"),
     "ptp.graceDays": z.number({ error: "Enter a number" }).int("Whole numbers only").min(0, "0 or more").max(30, "At most 30"),
+    "recruiter.escalationDays": z.number({ error: "Enter a number" }).int("Whole numbers only").min(1, "At least 1").max(60, "At most 60"),
+    "recruiter.reminderDays": z.number({ error: "Enter a number" }).int("Whole numbers only").min(0, "0 or more").max(30, "At most 30"),
+    "settlement.managerLimitPct": z.number({ error: "Enter a percentage" }).min(0, "0 to 100").max(100, "0 to 100"),
     "dashboard.monthlyTargetPct": z.number({ error: "Enter a percentage" }).min(0, "0 to 100").max(100, "0 to 100").nullable(),
   })
   .partial()

@@ -37,7 +37,7 @@ test("only an Admin may read or change settings (403)", async () => {
 
 test("with nothing saved GET returns the defaults", async () => {
   const body = await ((await GET()) as Response).json();
-  expect(body).toEqual({ "calling.window": { startHour: 9, endHour: 19 }, "followUp.notReachableTries": 3, "ptp.graceDays": 0, "dashboard.monthlyTargetPct": null });
+  expect(body).toEqual({ "calling.window": { startHour: 9, endHour: 19 }, "followUp.notReachableTries": 3, "ptp.graceDays": 0, "recruiter.escalationDays": 10, "recruiter.reminderDays": 2, "settlement.managerLimitPct": 20, "dashboard.monthlyTargetPct": null });
 });
 
 test("bad values are 400 and nothing is saved", async () => {

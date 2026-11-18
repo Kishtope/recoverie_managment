@@ -1,5 +1,6 @@
 "use client";
 
+import { isWorkerRole } from "@/lib/constants";
 import { Suspense } from "react";
 import { LoadingView } from "@/components/entity-components/loading-view";
 import { useMe } from "@/features/auth/hooks/use-me";
@@ -14,7 +15,7 @@ import { TeamDashboard } from "./team-dashboard";
 export const HomeView = () => {
   const { data: me } = useMe();
   if (!me) return <LoadingView message="Loading dashboard…" />;
-  if (me.role === "AGENT") return <AgentDashboard />;
+  if (isWorkerRole(me.role)) return <AgentDashboard />;
   return (
     <Suspense fallback={<LoadingView message="Loading dashboard…" />}>
       <TeamDashboard />

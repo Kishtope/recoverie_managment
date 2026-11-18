@@ -173,7 +173,7 @@ export const TeamView = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Disable {confirmDisable?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>They will be signed out of the app on their next request and cannot sign in until re-enabled.</AlertDialogDescription>
+            <AlertDialogDescription>They will be signed out on their next request and cannot sign in until re-enabled. Their open cases move to active colleagues; their call history stays.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

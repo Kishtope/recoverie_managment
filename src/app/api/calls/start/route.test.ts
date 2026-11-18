@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 
 // Fakes for the two things the route talks to: the signed-in user and the database.
 let auth: { user?: { id: string; role: string }; error?: Response } = { user: { id: "agent1", role: "AGENT" } };
-let loan: unknown = { status: "ACTIVE", customer: { mobilePrimary: "9800000001", mobileAlt: null } };
+let loan: unknown = { status: "ACTIVE", escalatedAt: null, customer: { mobilePrimary: "9800000001", mobileAlt: null, doNotCall: false } };
+let callsToday = 0;
 let pending: unknown = null;
 let agentMobile: string | null = "9000000003";
 const created: unknown[] = [];
@@ -15,12 +16,14 @@ mock.module("@/lib/auth", () => ({
     return { user: auth.user };
   },
   loanScopeWhere: () => ({}),
+  ownCaseWhere: () => ({}),
 }));
 mock.module("@/lib/prisma", () => ({
   prisma: {
     loan: { findFirst: async () => loan },
     call: {
       findFirst: async () => pending,
+      count: async () => callsToday,
       create: async ({ data }: { data: unknown }) => (created.push(data), { id: "call1" }),
       update: async ({ data }: { data: Record<string, unknown> }) => ({
         id: "call1", provider: "MOCK", direction: "OUTBOUND", status: "INITIATED", startedAt: new Date(), answeredAt: null, endedAt: null,
@@ -40,7 +43,8 @@ const post = async (body: unknown = { loanId: "L1", numberSlot: "primary" }) =>
 
 beforeEach(() => {
   auth = { user: { id: "agent1", role: "AGENT" } };
-  loan = { status: "ACTIVE", customer: { mobilePrimary: "9800000001", mobileAlt: null } };
+  loan = { status: "ACTIVE", escalatedAt: null, customer: { mobilePrimary: "9800000001", mobileAlt: null, doNotCall: false } };
+  callsToday = 0;
   pending = null;
   agentMobile = "9000000003";
   created.length = 0;
@@ -86,4 +90,27 @@ test("happy path creates an INITIATED call and never returns the real number", a
   expect(res.status).toBe(201);
   expect(JSON.stringify(await res.json())).not.toContain("9800000001");
   expect(created).toHaveLength(1);
+});
+
+test("a disputed case is refused with 409 and no call is created", async () => {
+  loan = { status: "ACTIVE", escalatedAt: new Date(), customer: { mobilePrimary: "9800000001", mobileAlt: null, doNotCall: false } };
+  const res = await post();
+  expect(res.status).toBe(409);
+  expect((await res.json()).reason).toBe("DISPUTE");
+  expect(created).toHaveLength(0);
+});
+
+test("a do-not-call customer is refused with 403", async () => {
+  loan = { status: "ACTIVE", escalatedAt: null, customer: { mobilePrimary: "9800000001", mobileAlt: null, doNotCall: true } };
+  const res = await post();
+  expect(res.status).toBe(403);
+  expect((await res.json()).reason).toBe("DO_NOT_CALL");
+});
+
+test("the fourth call to a customer in one day is refused with 429", async () => {
+  callsToday = 3;
+  const res = await post();
+  expect(res.status).toBe(429);
+  expect((await res.json()).reason).toBe("DAILY_LIMIT");
+  expect(created).toHaveLength(0);
 });

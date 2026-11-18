@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { logAudit } from "@/lib/audit";
 import { startSession } from "@/lib/session";
 import { signInSchema } from "@/features/auth/schemas";
 
@@ -18,5 +19,10 @@ export const POST = async (req: Request) => {
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await startSession(user);
+  // Device log: where and with what each sign-in came from.
+  await logAudit(user.id, "auth.login", "User", user.id, {
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? null,
+    userAgent: req.headers.get("user-agent")?.slice(0, 200) ?? null,
+  });
   return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 };

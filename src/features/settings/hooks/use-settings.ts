@@ -11,7 +11,7 @@ export const useGetSettings = (enabled = true) =>
     enabled,
   });
 
-// Saves settings, then refreshes them (and any case page whose Call button depends on the calling window).
+// Saves settings, then refreshes them (and any case page whose Call button depends on the calling window, and the dashboards that show the monthly target).
 export const useUpdateSettings = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -20,6 +20,8 @@ export const useUpdateSettings = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["get-settings"] });
       queryClient.invalidateQueries({ queryKey: ["get-loan"] });
+      // The monthly target feeds the dashboard charts, so refetch every dashboard query (keys match by prefix, whatever the filters).
+      ["team-summary", "team-users", "team-charts", "agent-dashboard"].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
       toast.add({ title: "Settings saved", type: "success" });
     },
     onError: (error) => {

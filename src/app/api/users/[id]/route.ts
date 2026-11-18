@@ -3,6 +3,7 @@ import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { reassignOpenCases } from "@/lib/reassign-open-cases";
 import { updateUserSchema } from "@/features/team/schemas";
 import { userSelect } from "../select";
 
@@ -41,6 +42,13 @@ export const PATCH = async (req: Request, ctx: { params: Promise<{ id: string }>
     if (existing.role !== rest.role) await logAudit(auth.user.id, "user.role_change", "User", id, { from: existing.role, to: rest.role });
     if (existing.status !== rest.status) {
       await logAudit(auth.user.id, rest.status === "DISABLED" ? "user.disable" : "user.enable", "User", id);
+      // Deactivating hands the user's open cases to colleagues; their call and outcome history stays with them.
+      if (rest.status === "DISABLED") {
+        const reassigned = await reassignOpenCases(id, auth.user.id);
+        await logAudit(auth.user.id, "user.reassign_open_cases", "User", id, reassigned);
+        await logAudit(auth.user.id, "user.update", "User", id);
+        return NextResponse.json({ user, reassigned });
+      }
     }
     await logAudit(auth.user.id, "user.update", "User", id);
     return NextResponse.json({ user });

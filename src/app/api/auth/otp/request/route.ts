@@ -23,7 +23,7 @@ export const POST = async (req: Request) => {
     return NextResponse.json({ error, retryAfterSec: check.retryAfterSec }, { status: 429 });
   }
 
-  const agent = await prisma.user.findFirst({ where: { mobile, role: "AGENT", status: "ACTIVE" }, select: { id: true } });
+  const agent = await prisma.user.findFirst({ where: { mobile, role: { in: ["AGENT", "RECRUITER"] }, status: "ACTIVE" }, select: { id: true } });
   const code = generateCode();
   // An older code stops working the moment a new one is asked for.
   await prisma.otpCode.updateMany({ where: { mobile, consumedAt: null }, data: { consumedAt: now } });

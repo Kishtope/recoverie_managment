@@ -1,5 +1,6 @@
 "use client";
 
+import { isWorkerRole } from "@/lib/constants";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PhoneOffIcon } from "lucide-react";
@@ -15,7 +16,7 @@ import { useGetPendingCall } from "../hooks/use-get-pending-call";
 export const PendingCallBanner = () => {
   const pathname = usePathname();
   const { data: me } = useMe();
-  const { data: call } = useGetPendingCall(me?.role === "AGENT");
+  const { data: call } = useGetPendingCall(isWorkerRole(me?.role));
 
   if (!call || pathname === `/cases/${call.loanId}`) return null;
   return (

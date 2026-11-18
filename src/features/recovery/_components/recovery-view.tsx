@@ -14,7 +14,6 @@ import { TeamFilters } from "@/features/dashboard/_components/team-filters";
 import { getTeamUserColumns } from "@/features/dashboard/_components/team-users-table";
 import { useGetTeamUsers } from "@/features/dashboard/hooks/use-team-dashboard";
 import { useTeamParams } from "@/features/dashboard/hooks/use-team-params";
-import { ExportMisButton } from "@/features/reports/_components/export-mis-button";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
 
@@ -51,10 +50,10 @@ export const RecoveryView = () => {
     <div className="flex flex-col gap-2">
       <TeamFilters
         params={params}
+        // TODO: Export Excel is hidden until the exported Daily MIS file is checked (it came out empty for some filters). Re-add: import ExportMisButton from "@/features/reports/_components/export-mis-button" and render <ExportMisButton query={params.query} />.
         actions={
           <>
             <FilterSelect value={params.sort} onChange={(v) => params.setFilter("sort", v)} options={SORT_OPTIONS} ariaLabel="Sort by" className="w-48" />
-            <ExportMisButton query={params.query} />
           </>
         }
       />

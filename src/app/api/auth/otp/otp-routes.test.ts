@@ -45,7 +45,7 @@ mock.module("@/lib/prisma", () => ({
       },
     },
     user: {
-      findFirst: async ({ where }: { where: Partial<User> }) => users.find((u) => Object.entries(where).every(([k, v]) => u[k as keyof User] === v)) ?? null,
+      findFirst: async ({ where }: { where: Partial<User> }) => users.find((u) => Object.entries(where).every(([k, v]) => (v && typeof v === "object" && "in" in v ? (v.in as unknown[]).includes(u[k as keyof User]) : u[k as keyof User] === v))) ?? null,
       update: async ({ where, data }: { where: { id: string }; data: Partial<User> }) => Object.assign(users.find((u) => u.id === where.id)!, data),
     },
   },

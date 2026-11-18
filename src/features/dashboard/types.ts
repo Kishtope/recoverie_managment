@@ -8,6 +8,8 @@ export type AgentDashboard = {
   missedCallbacks: number; // customer missed-calls the agent has not called back yet
   callsToday: { connected: number; total: number }; // the agent's own outbound calls placed today (Indian day)
   collectedThisMonth: number; // sum of paidAmount from this month's PAID / PART_PAID outcomes (agent-reported)
+  // This month's goals set by the Admin / Manager and how far along the agent is; null when no target is set.
+  target: { month: string; collectionAmount: number | null; casesResolved: number | null; collected: number; resolved: number; collectedPct: number | null; resolvedPct: number | null } | null;
 };
 
 // ---- Manager / agency owner / admin dashboards ----

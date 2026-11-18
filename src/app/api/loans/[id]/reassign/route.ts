@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser, loanScopeWhere, userScopeWhere } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { todayIst } from "@/lib/dates";
-import { notify } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { moveCase } from "@/lib/reassign-case";
 import { findPendingCall } from "@/lib/telephony/pending";
 import { reassignSchema } from "@/features/cases/schemas";
 
@@ -28,7 +27,7 @@ export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> 
 
   // The new holder must be an active agent (or agency owner) inside the caller's own user scope.
   const agent = await prisma.user.findFirst({
-    where: { AND: [userScopeWhere(auth.user), { id: parsed.data.agentId, status: "ACTIVE", role: { in: ["AGENT", "AGENCY_OWNER"] } }] },
+    where: { AND: [userScopeWhere(auth.user), { id: parsed.data.agentId, status: "ACTIVE", role: { in: ["AGENT", "AGENCY_OWNER", "RECRUITER"] } }] },
     select: { id: true, name: true, agencyId: true },
   });
   if (!agent) return NextResponse.json({ error: "Choose an agent inside your team" }, { status: 400 });
@@ -40,13 +39,7 @@ export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> 
   }
 
   const now = new Date();
-  await prisma.$transaction(async (tx) => {
-    if (current) await tx.allocation.update({ where: { id: current.id }, data: { active: false, activeLoanId: null, endedAt: now } });
-    await tx.allocation.create({
-      data: { loanId: id, activeLoanId: id, agentId: agent.id, agencyId: agent.agencyId, assignedById: auth.user.id, assignedOn: now },
-    });
-    await notify(tx, [{ userId: agent.id, type: "REASSIGNED", loanId: id, day: todayIst(now) }]);
-  });
+  await prisma.$transaction((tx) => moveCase(tx, { loanId: id, currentAllocationId: current?.id ?? null, agent, actedBy: auth.user.id, now }));
   await logAudit(auth.user.id, "loan.reassign", "Loan", id, { from: current?.agentId ?? null, to: agent.id });
 
   return NextResponse.json({ ok: true, agent: { id: agent.id, name: agent.name } });
