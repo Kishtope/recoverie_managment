@@ -16,7 +16,6 @@ const base = z.object({
   role: z.enum(ROLES),
   agencyId: z.string().optional(),
   reportsToId: z.string().optional(),
-  hubUserId: z.string().trim().max(64).optional(), // hub.kishtope.com user id; blank = not linked
   access: z.array(access).default([]),
 });
 

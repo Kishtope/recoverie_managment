@@ -1,92 +1,90 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DataTable } from "@/components/data-table";
 import { EntityContainer } from "@/components/entity-components/entity-container";
 import { EntityEmptyView } from "@/components/entity-components/entity-empty-view";
 import { EntityHeader } from "@/components/entity-components/entity-header";
 import { EntityPagination } from "@/components/entity-components/entity-pagination";
+import { EntitySearch } from "@/components/entity-components/entity-search";
 import { ErrorView } from "@/components/entity-components/error-view";
 import { LoadingView } from "@/components/entity-components/loading-view";
+import { useGetLoans } from "@/features/cases/hooks/use-get-loans";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
-import { useGetImports } from "../hooks/use-get-imports";
 import { useImportsParams } from "../hooks/use-imports-params";
 import { ImportDetailDialog } from "./import-detail-dialog";
-import { ImportUpload } from "./import-upload";
-import { getImportColumns } from "./imports-table";
-import { UnmatchedHubUsers } from "./unmatched-hub-users";
+import { ImportUploadDialog } from "./import-upload-dialog";
+import { uploadedColumns } from "./imports-table";
 
 const PAGE_SIZE = 10;
 
-// Toolbar options; "all" is the default and never appears in the URL.
-const TYPE_OPTIONS = [{ value: "all", label: "All types" }, { value: "LOANS", label: "Loans" }, { value: "ALLOCATIONS", label: "Allocations" }, { value: "PAYMENTS", label: "Payments" }];
-const STATUS_OPTIONS = [{ value: "all", label: "Any status" }, { value: "DONE", label: "Done" }, { value: "FAILED", label: "Failed" }];
-
-// One filter as an always-one-selected ToggleGroup (a re-click that would empty it is ignored).
-const FilterToggle = ({ value, onChange, options, label }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; label: string }) => (
-  <ToggleGroup variant="outline" aria-label={label} value={[value]} onValueChange={(v) => v[0] && onChange(v[0])}>
-    {options.map((o) => (
-      <ToggleGroupItem key={o.value} value={o.value}>{o.label}</ToggleGroupItem>
-    ))}
-  </ToggleGroup>
-);
-
 /**
  * @component ImportsView
- * @description Admin Imports page: upload a Loans/Allocations file, see the run summary, browse past runs (filters in the URL)
- * and open a run to see its rejected rows. Also lists hub users that still need an app account.
+ * @description Admin Customers page: the uploaded customer details in a searchable table (newest first, search in the URL), with an
+ * "Upload customers" dialog that can also auto-allocate the new cases. Rejected rows of an upload open in their own dialog.
  */
 export const ImportsView = () => {
   const params = useImportsParams();
-  const { data, isPending, isError, error, isPlaceholderData } = useGetImports({
-    type: params.filters.type,
-    status: params.filters.status,
+  const { data, isPending, isError, error, isPlaceholderData } = useGetLoans({
+    q: params.q,
+    agentId: "",
+    company: "",
+    branch: "",
+    followUp: "",
+    outcome: "",
+    flag: "",
+    sort: "recent",
     page: params.page,
     pageSize: PAGE_SIZE,
   });
-  // Run whose details are open.
+  // Whether the upload dialog is open, and the upload whose rejected rows are open.
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [openRunId, setOpenRunId] = useState<string>();
-
-  const columns = useMemo(() => getImportColumns({ onOpen: (r) => setOpenRunId(r.id) }), []);
 
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
   const from = data && data.total ? (data.page - 1) * data.pageSize + 1 : 0;
   const to = data ? Math.min(data.page * data.pageSize, data.total) : 0;
 
   const toolbar = (
-    <div className="flex flex-col gap-4">
-      <ImportUpload onOpenErrors={setOpenRunId} />
-      <UnmatchedHubUsers />
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterToggle value={params.filters.type} onChange={(v) => params.setFilter("type", v)} options={TYPE_OPTIONS} label="Filter by type" />
-          <FilterToggle value={params.filters.status} onChange={(v) => params.setFilter("status", v)} options={STATUS_OPTIONS} label="Filter by status" />
-          {params.hasActiveFilters && <Button variant="ghost" size="sm" onClick={params.clearFilters}>Clear filters</Button>}
-        </div>
-        {data && <p className="text-sm text-muted-foreground">{data.total ? `Showing ${from}–${to} of ${data.total} imports` : "No imports"}</p>}
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {params.hasActiveFilters && <Button variant="ghost" size="sm" onClick={params.clearFilters}>Clear search</Button>}
+        <EntitySearch value={params.searchInput} onChange={params.setSearchInput} placeholder="Search name, agreement, mobile" />
       </div>
+      {data && <p className="text-sm text-muted-foreground">{data.total ? `Showing ${from}–${to} of ${data.total} customers` : "No customers"}</p>}
     </div>
   );
 
   return (
     <EntityContainer
-      header={<EntityHeader title="Imports" description="Bring loans, customers and allocations in from the hub." />}
+      header={
+        <EntityHeader
+          title="Customers"
+          description="Upload customer details from an Excel or CSV file, and allocate them to callers."
+          newButtonLabel="Upload customers"
+          onNew={() => setUploadOpen(true)}
+        />
+      }
       search={toolbar}
       pagination={<EntityPagination page={params.page} totalPages={totalPages} onPageChange={params.setPage} disabled={isPlaceholderData} />}
     >
       {isPending ? (
-        <LoadingView message="Loading imports…" />
+        <LoadingView message="Loading customers…" />
       ) : isError ? (
-        <ErrorView message={getErrorMessage(error, "Couldn't load imports.")} />
+        <ErrorView message={getErrorMessage(error, "Couldn't load customers.")} />
       ) : data.items.length === 0 ? (
-        <EntityEmptyView empty_label="No imports" message={params.hasActiveFilters ? "No imports match these filters." : "Upload a Loans file to get started."} />
+        <EntityEmptyView
+          empty_label="No customers"
+          message={params.hasActiveFilters ? "No customers match this search." : "Upload a customer details file to get started."}
+          onNew={params.hasActiveFilters ? undefined : () => setUploadOpen(true)}
+        />
       ) : (
-        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} getRowKey={(r) => r.id} />
+        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={uploadedColumns} rows={data.items} getRowKey={(l) => l.id} />
       )}
 
+      <ImportUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} onOpenErrors={setOpenRunId} />
       <ImportDetailDialog runId={openRunId} onClose={() => setOpenRunId(undefined)} />
     </EntityContainer>
   );

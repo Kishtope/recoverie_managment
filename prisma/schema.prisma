@@ -40,7 +40,6 @@ model User {
   reportsToId  String?
   reportsTo    User?         @relation("ReportsTo", fields: [reportsToId], references: [id])
   reports      User[]        @relation("ReportsTo")
-  hubUserId    String?       @unique // hub.kishtope.com user, used by the Phase 1 import
   lastLoginAt  DateTime?
   access       UserAccess[]
   ownedAgency  Agency?       @relation("AgencyOwner")

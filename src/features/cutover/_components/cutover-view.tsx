@@ -46,7 +46,6 @@ const columns: DataTableColumn<CutoverUser>[] = [
   },
   { key: "mobile", header: "Mobile", cell: (u) => u.mobile ?? "-" },
   { key: "email", header: "Email", cell: (u) => u.email ?? "-" },
-  { key: "hub", header: "Hub user id", cell: (u) => u.hubUserId ?? "-" },
   { key: "cases", header: "Active cases", cell: (u) => u.activeCases },
   { key: "last", header: "Last sign-in", cell: (u) => (u.lastLoginAt ? format(new Date(u.lastLoginAt), "dd MMM yyyy, h:mm a") : "Never") },
   {
@@ -95,7 +94,7 @@ export const CutoverView = () => {
           <Cell label="Ready" value={s.ready} note={`of ${s.total} active users`} />
           <Cell label="Not ready" value={s.notReady} note="Need something before go-live" />
           <Cell label="Missing contact" value={s.noMobile + s.noEmail} note={`${s.noMobile} no mobile, ${s.noEmail} no email`} />
-          <Cell label="Never signed in" value={s.neverSignedIn} note={`${s.noHubId} also have no hub user id`} />
+          <Cell label="Never signed in" value={s.neverSignedIn} note="Have not logged in yet" />
         </section>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2">

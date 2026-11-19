@@ -12,7 +12,6 @@ export type TeamUser = {
   reportsTo: { id: string; name: string } | null;
   access: { company: string; branch: string }[];
   lastLoginAt: string | null;
-  hubUserId: string | null;
 };
 
 export type TeamListResponse = { items: TeamUser[]; total: number; page: number; pageSize: number };

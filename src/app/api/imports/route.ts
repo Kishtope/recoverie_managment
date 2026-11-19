@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { columnLabel, mapColumns } from "@/lib/imports/columns";
 import { ImportFileError, MAX_FILE_BYTES, parseSheet } from "@/lib/imports/parse";
 import { executeImport, hasRunningImport, toRunItem } from "@/lib/imports/run";
-import { importTypeSchema } from "@/features/imports/schemas";
+import { runAutoAllocation } from "@/lib/allocation-run";
+import { importAutoAllocateSchema, importTypeSchema } from "@/features/imports/schemas";
+import type { ImportUploadResult } from "@/features/imports/types";
 
 // Lists past import runs (without their error lists), newest first, with type/status filters and paging. Admin only.
 export const GET = async (req: Request) => {
@@ -32,7 +34,9 @@ export const GET = async (req: Request) => {
   return NextResponse.json({ items, total, page, pageSize });
 };
 
-// Imports an uploaded .xlsx/.csv (multipart: `type` + `file`). Returns the run summary; bad rows are in the run's errors, not a failure.
+// Imports an uploaded .xlsx/.csv (multipart: `type` + `file`, and for Customers files an optional `autoAllocate` JSON {rule, agentIds}). Returns the run
+// summary; bad rows are in the run's errors, not a failure. With `autoAllocate`, the cases from this file that nobody holds yet are then split
+// between the chosen people; if that step fails the import still stands and the reason comes back as `allocationError`.
 export const POST = async (req: Request) => {
   const auth = await requireUser(["ADMIN"]);
   if ("error" in auth) return auth.error;
@@ -44,6 +48,21 @@ export const POST = async (req: Request) => {
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) return NextResponse.json({ error: "Choose a file to upload" }, { status: 400 });
   if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: "File is larger than 10 MB" }, { status: 400 });
+
+  // Optional auto-allocation choice (JSON in a form field), checked before anything is written.
+  const rawAlloc = form.get("autoAllocate");
+  let autoAllocate;
+  if (typeof rawAlloc === "string" && rawAlloc) {
+    let json: unknown;
+    try {
+      json = JSON.parse(rawAlloc);
+    } catch {
+      return NextResponse.json({ error: "Invalid auto-allocation choice" }, { status: 400 });
+    }
+    const parsedAlloc = importAutoAllocateSchema.safeParse(json);
+    if (!parsedAlloc.success) return NextResponse.json({ error: parsedAlloc.error.issues[0]?.message ?? "Invalid auto-allocation choice" }, { status: 400 });
+    autoAllocate = parsedAlloc.data;
+  }
 
   let rows;
   try {
@@ -62,5 +81,18 @@ export const POST = async (req: Request) => {
   if (await hasRunningImport()) return NextResponse.json({ error: "Another import is still running. Try again in a minute." }, { status: 409 });
 
   const run = await executeImport({ type: type.data, fileName: file.name, userId: auth.user.id, rows });
-  return NextResponse.json({ run: toRunItem(run, { id: auth.user.id, name: auth.user.name }) }, { status: 201 });
+  let allocation: ImportUploadResult["allocation"] = null;
+  let allocationError: string | null = null;
+  if (autoAllocate && type.data === "LOANS" && run.status === "DONE") {
+    try {
+      const outcome = await runAutoAllocation({ user: auth.user, ...autoAllocate, dryRun: false, agreementNos: rows.map((r) => r.values.agreementNo?.trim()).filter((n): n is string => !!n) });
+      if (outcome.ok) allocation = outcome.result;
+      else allocationError = outcome.error;
+    } catch {
+      allocationError = "Cases were imported but could not be allocated. Use Auto-allocate on the Cases page.";
+    }
+  }
+
+  const body: ImportUploadResult = { run: toRunItem(run, { id: auth.user.id, name: auth.user.name }), allocation, allocationError };
+  return NextResponse.json(body, { status: 201 });
 };

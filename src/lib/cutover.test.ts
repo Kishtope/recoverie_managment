@@ -1,26 +1,26 @@
 import { expect, test } from "bun:test";
 import { mapStaffSheet, matchStaff, summarizeReadiness, userReadiness, type ReadinessUser, type StaffUser } from "./cutover";
 
-const agent: ReadinessUser = { role: "AGENT", email: null, mobile: "9000000003", hubUserId: "HUB-1", lastLoginAt: new Date() };
-const manager: ReadinessUser = { role: "MANAGER", email: "m@x.com", mobile: null, hubUserId: null, lastLoginAt: new Date() };
+const agent: ReadinessUser = { role: "AGENT", email: "a@x.com", mobile: "9000000003", lastLoginAt: new Date() };
+const manager: ReadinessUser = { role: "MANAGER", email: "m@x.com", mobile: null, lastLoginAt: new Date() };
 
-test("an agent needs a mobile, a hub id and a first sign-in; an email is not asked of them", () => {
+test("an agent needs a mobile, an email and a first sign-in", () => {
   expect(userReadiness(agent)).toMatchObject({ ready: true, problems: [] });
   expect(userReadiness({ ...agent, mobile: null }).problems).toEqual(["No mobile number"]);
-  expect(userReadiness({ ...agent, hubUserId: null }).problems).toEqual(["No hub user id"]);
+  expect(userReadiness({ ...agent, email: null }).problems).toEqual(["No email"]);
   expect(userReadiness({ ...agent, lastLoginAt: null }).problems).toEqual(["Never signed in"]);
-  expect(userReadiness({ ...agent, mobile: null, hubUserId: null, lastLoginAt: null }).ready).toBe(false);
+  expect(userReadiness({ ...agent, mobile: null, lastLoginAt: null }).ready).toBe(false);
 });
 
-test("a manager needs an email and a first sign-in; mobile and hub id do not apply", () => {
-  expect(userReadiness(manager)).toMatchObject({ ready: true, checks: { mobile: null, email: true, hubId: null, signedIn: true } });
+test("a manager needs an email and a first sign-in; mobile does not apply", () => {
+  expect(userReadiness(manager)).toMatchObject({ ready: true, checks: { mobile: null, email: true, signedIn: true } });
   expect(userReadiness({ ...manager, email: null }).problems).toEqual(["No email"]);
   expect(userReadiness({ ...manager, lastLoginAt: null }).ready).toBe(false);
 });
 
 test("the summary counts every problem once per user", () => {
   const s = summarizeReadiness([userReadiness(agent), userReadiness({ ...agent, mobile: null, lastLoginAt: null }), userReadiness({ ...manager, email: null })]);
-  expect(s).toEqual({ total: 3, ready: 1, notReady: 2, noMobile: 1, noEmail: 1, noHubId: 0, neverSignedIn: 1 });
+  expect(s).toEqual({ total: 3, ready: 1, notReady: 2, noMobile: 1, noEmail: 1, neverSignedIn: 1 });
 });
 
 const users: StaffUser[] = [

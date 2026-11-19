@@ -5,7 +5,7 @@ import { SCORECARD_ALERT_LABELS, type ScorecardRow } from "@/lib/scorecard";
 // The monthly caller scorecard as an Excel file: one row per caller in rank order, with target vs achievement and alerts.
 export const buildScorecardXlsx = async (month: string, rows: ScorecardRow[]) => {
   const book = new ExcelJS.Workbook();
-  const sheet = book.addWorksheet(`Scorecard ${month}`);
+  const sheet = book.addWorksheet(`Performance ${month}`);
   sheet.columns = [
     { header: "Rank", key: "rank", width: 7 },
     { header: "Caller", key: "name", width: 26 },

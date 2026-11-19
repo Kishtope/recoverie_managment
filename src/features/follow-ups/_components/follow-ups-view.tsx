@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/data-table";
 import { EntityContainer } from "@/components/entity-components/entity-container";
@@ -27,7 +26,6 @@ const PAGE_SIZE = 10;
  * Closed. Reads the same loans API as My cases with a `tab` filter, so the numbers always agree. Tab, search and page live in the URL.
  */
 export const FollowUpsView = () => {
-  const router = useRouter();
   const params = useFollowUpsParams();
   const tab = params.filters.tab as FollowUpTabValue;
   const { data, isPending, isError, error, isPlaceholderData } = useGetLoans({
@@ -84,7 +82,6 @@ export const FollowUpsView = () => {
             columns={columns}
             rows={data.items}
             getRowKey={(l) => l.id}
-            onRowClick={(l) => router.push(`/cases/${l.id}`)}
           />
         )}
       </div>

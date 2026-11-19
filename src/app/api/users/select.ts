@@ -9,7 +9,6 @@ export const userSelect = {
   role: true,
   status: true,
   lastLoginAt: true,
-  hubUserId: true,
   agency: { select: { id: true, name: true } },
   reportsTo: { select: { id: true, name: true } },
   access: { select: { company: true, branch: true } },

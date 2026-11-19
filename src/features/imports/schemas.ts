@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { autoAllocateSchema } from "@/features/cases/schemas";
 import { BRANCHES, COMPANIES } from "@/lib/constants";
 import { parseAmount, parseHubDate, parseMobile } from "@/lib/imports/values";
 
@@ -33,6 +34,10 @@ const parseCount = (v: string) => {
 
 // Matches a value against a fixed list ignoring case; returns the canonical spelling or null.
 const matchList = (list: readonly string[]) => (v: string) => list.find((x) => x.toLowerCase() === v.toLowerCase()) ?? null;
+
+// Optional "allocate the uploaded cases right away" choice sent with a Customers upload: the rule and the people to split them between.
+export const importAutoAllocateSchema = autoAllocateSchema.omit({ dryRun: true });
+export type ImportAutoAllocateInput = z.input<typeof importAutoAllocateSchema>;
 
 // One row of the Loans file (customer + loan). Branch/company must be known so access filters never break.
 export const loanRowSchema = z.object({
@@ -69,10 +74,10 @@ export const loanRowSchema = z.object({
 });
 export type LoanRow = z.infer<typeof loanRowSchema>;
 
-// One row of the Allocations file. A blank hub user id means "unallocate this loan".
+// One row of the Allocations file. A blank agent email means "unallocate this loan".
 export const allocationRowSchema = z.object({
   agreementNo: z.string().trim().min(1, "Agreement no. is blank"),
-  hubUserId: text,
+  agentEmail: text,
   agency: text,
   assignedOn: parsed(parseHubDate, "Invalid assigned date"),
   validTill: parsed(parseHubDate, "Invalid valid-till date"),

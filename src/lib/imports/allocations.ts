@@ -12,7 +12,7 @@ const ALLOCATABLE: Role[] = ["AGENT", "AGENCY_OWNER", "RECRUITER"];
 export type PlanInput = {
   rows: ValidAllocationRow[];
   loans: Map<string, string>; // agreementNo -> loan id
-  users: Map<string, { id: string; role: Role; status: UserStatus; agencyId: string | null }>; // hubUserId -> app user
+  users: Map<string, { id: string; role: Role; status: UserStatus; agencyId: string | null }>; // lower-cased email -> app user
   agencies: Map<string, string>; // lower-cased agency name -> agency id
   active: Map<string, { id: string; agentId: string | null; validTill: Date | null }>; // loan id -> its active allocation
   now: Date;
@@ -31,28 +31,29 @@ export type AllocationPlan = { actions: AllocationAction[]; errors: ImportRowErr
 const sameDate = (a: Date | null | undefined, b: Date | null | undefined) => (a?.getTime() ?? null) === (b?.getTime() ?? null);
 
 // Decides what each allocation row should do, with no database access: create, reassign (old one is closed, history kept),
-// change valid-till, close (blank hub user), or nothing. Rows that cannot be matched become errors, never silent skips.
+// change valid-till, close (blank agent email), or nothing. Rows that cannot be matched become errors, never silent skips.
 export const planAllocationChanges = ({ rows, loans, users, agencies, active, now }: PlanInput): AllocationPlan => {
   const plan: AllocationPlan = { actions: [], errors: [], unchanged: 0 };
 
   for (const { row, data } of rows) {
-    const { agreementNo, hubUserId, agency, assignedOn, validTill } = data;
-    const fail = (reason: string, extra?: { hubUserId: string }) => void plan.errors.push({ row, agreementNo, reason, ...extra });
+    const { agreementNo, agentEmail, agency, assignedOn, validTill } = data;
+    const fail = (reason: string, extra?: { agentEmail: string }) => void plan.errors.push({ row, agreementNo, reason, ...extra });
 
     const loanId = loans.get(agreementNo);
     if (!loanId) { fail("Loan not found; import Loans first"); continue; }
     const current = active.get(loanId);
 
-    if (!hubUserId) {
+    if (!agentEmail) {
       if (current) plan.actions.push({ kind: "close", row, agreementNo, allocationId: current.id });
       else plan.unchanged++;
       continue;
     }
 
-    const user = users.get(hubUserId);
-    if (!user) { fail(`Hub user ${hubUserId} has no app account`, { hubUserId }); continue; }
-    if (user.status !== "ACTIVE") { fail(`Hub user ${hubUserId} is disabled`); continue; }
-    if (!ALLOCATABLE.includes(user.role)) { fail(`Hub user ${hubUserId} has a role that cannot hold cases`); continue; }
+    const email = agentEmail.toLowerCase();
+    const user = users.get(email);
+    if (!user) { fail(`No app user with email ${agentEmail}`, { agentEmail: email }); continue; }
+    if (user.status !== "ACTIVE") { fail(`User ${agentEmail} is disabled`); continue; }
+    if (!ALLOCATABLE.includes(user.role)) { fail(`User ${agentEmail} has a role that cannot hold cases`); continue; }
 
     let agencyId = user.agencyId;
     if (agency) {
@@ -87,11 +88,11 @@ export const applyAllocations = async (rows: ValidAllocationRow[], userId: strin
     });
     current.forEach((a) => active.set(a.loanId, a));
   }
-  const hubUsers = await prisma.user.findMany({
-    where: { hubUserId: { not: null } },
-    select: { id: true, hubUserId: true, role: true, status: true, agencyId: true },
+  const appUsers = await prisma.user.findMany({
+    where: { email: { not: null } },
+    select: { id: true, email: true, role: true, status: true, agencyId: true },
   });
-  const users = new Map(hubUsers.map((u) => [u.hubUserId!, u]));
+  const users = new Map(appUsers.map((u) => [u.email!.toLowerCase(), u]));
   const agencies = new Map((await prisma.agency.findMany({ select: { id: true, name: true } })).map((a) => [a.name.toLowerCase(), a.id]));
 
   const now = new Date();

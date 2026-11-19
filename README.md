@@ -15,7 +15,7 @@ Next.js 16 + Prisma 7 (MySQL) + TanStack Query. Package manager: bun.
 
 ## Importing hub data (Admin)
 
-Loans, customers and allocations come from hub.kishtope.com as Excel/CSV files on the **Imports** page (Admin only).
+Loans, customers, allocations and payments are loaded from Excel/CSV files on the **Imports** page (Admin only). Allocation files name each agent by their app email.
 
 1. **Map hub users first.** On the Team page, create each agent and set their **Hub user ID** (their ID on the hub). Allocation rows are matched to app users by this ID only.
 2. **Import Loans, then Allocations.** Templates are on the Imports page (`public/templates/*.csv`); header names are matched loosely (see `src/lib/imports/columns.ts`, the one file to change when the hub export format is known).

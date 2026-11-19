@@ -1,5 +1,6 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const summarize = (labels: string[], total: number, placeholder: string, allLabe
  * @param options Choices as { value, label }.
  * @param value Currently picked values; `onChange` receives the new list.
  * @param allLabel Text shown when every option is picked (e.g. "All branches").
+ * @param checkboxes Shows a checkbox before each option in the list instead of a check mark on the right.
  */
 export const MultiSelect = ({
   id,
@@ -25,6 +27,7 @@ export const MultiSelect = ({
   options,
   placeholder = "Select…",
   allLabel,
+  checkboxes,
   disabled,
   invalid,
   className,
@@ -35,6 +38,7 @@ export const MultiSelect = ({
   options: { value: string; label: string }[];
   placeholder?: string;
   allLabel?: string;
+  checkboxes?: boolean;
   disabled?: boolean;
   invalid?: boolean;
   className?: string;
@@ -55,7 +59,9 @@ export const MultiSelect = ({
     <SelectContent alignItemWithTrigger={false}>
       <SelectGroup>
         {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
+          // With checkboxes the box is the tick, so the item's own check mark (its last child) is hidden.
+          <SelectItem key={o.value} value={o.value} className={cn(checkboxes && "[&>span:last-child]:hidden")}>
+            {checkboxes && <Checkbox checked={value.includes(o.value)} tabIndex={-1} aria-hidden className="pointer-events-none" />}
             {o.label}
           </SelectItem>
         ))}

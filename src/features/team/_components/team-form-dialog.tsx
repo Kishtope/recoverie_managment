@@ -61,7 +61,6 @@ export const TeamFormDialog = ({
       role: String(f.get("role")),
       agencyId: String(f.get("agencyId") ?? ""),
       reportsToId: String(f.get("reportsToId") ?? ""),
-      hubUserId: String(f.get("hubUserId") ?? ""),
       status: user?.status ?? "ACTIVE",
       access: [...access].map((k) => {
         const [company, branch] = k.split("|");
@@ -149,12 +148,6 @@ export const TeamFormDialog = ({
                 ]}
               />
               {errors.reportsToId && <FieldError>{errors.reportsToId}</FieldError>}
-            </Field>
-            <Field data-invalid={!!errors.hubUserId}>
-              <FieldLabel htmlFor="hubUserId">Hub user ID</FieldLabel>
-              <Input id="hubUserId" name="hubUserId" defaultValue={user?.hubUserId ?? ""} aria-invalid={!!errors.hubUserId} />
-              <FieldDescription>The user&apos;s ID on hub.kishtope.com. Allocation files are matched to this app user by it.</FieldDescription>
-              {errors.hubUserId && <FieldError>{errors.hubUserId}</FieldError>}
             </Field>
           </FieldSet>
 

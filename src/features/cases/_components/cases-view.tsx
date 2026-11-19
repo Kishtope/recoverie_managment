@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { UsersRoundIcon, WandSparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -50,7 +49,6 @@ const FOLLOW_UP_OPTIONS = [
  * filters. Admins and managers also get agent / flag filters. Filters, search and page live in the URL; mobiles are masked by the API.
  */
 export const CasesView = () => {
-  const router = useRouter();
   const { data: me } = useMe();
   const isAgent = isWorkerRole(me?.role);
   const isAdmin = me?.role === "ADMIN";
@@ -172,7 +170,6 @@ export const CasesView = () => {
           columns={columns}
           rows={data.items}
           getRowKey={(l) => l.id}
-          onRowClick={(l) => router.push(`/cases/${l.id}`)}
           selection={canSelect ? { selected, onChange: setSelected } : undefined}
         />
       )}

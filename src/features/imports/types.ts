@@ -1,9 +1,14 @@
 // Shapes shared by the imports API and screen.
+import type { AutoAllocateResult } from "@/features/cases/types";
+
 export type ImportKind = "LOANS" | "ALLOCATIONS" | "PAYMENTS";
 export type ImportRunStatus = "RUNNING" | "DONE" | "FAILED";
 
-// One rejected row; never contains mobile numbers. `hubUserId` is set when the hub user has no app account.
-export type ImportRowError = { row: number; agreementNo: string | null; reason: string; hubUserId?: string };
+// One rejected row; never contains mobile numbers. `agentEmail` is set when no app user has that email.
+export type ImportRowError = { row: number; agreementNo: string | null; reason: string; agentEmail?: string };
+
+// What an upload returns: the run summary, plus the result of the auto-allocation when it was asked for (or why it could not run).
+export type ImportUploadResult = { run: ImportRunItem; allocation: AutoAllocateResult | null; allocationError: string | null };
 
 // One row of the runs list / the summary after an upload.
 export type ImportRunItem = {
@@ -23,9 +28,4 @@ export type ImportRunItem = {
 
 export type ImportRunDetail = ImportRunItem & { errors: ImportRowError[] };
 
-export type ImportListResponse = { items: ImportRunItem[]; total: number; page: number; pageSize: number };
 
-export type ImportListQuery = { type: string; status: string; page: number; pageSize: number };
-
-// Hub users from recent allocation files that have no app account yet.
-export type UnmatchedHubUser = { hubUserId: string; rows: number };

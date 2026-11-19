@@ -19,7 +19,7 @@ export const GET = async (req: Request) => {
   const users = await prisma.user.findMany({
     where: { status: "ACTIVE" },
     select: {
-      id: true, name: true, role: true, email: true, mobile: true, hubUserId: true, lastLoginAt: true,
+      id: true, name: true, role: true, email: true, mobile: true, lastLoginAt: true,
       _count: { select: { allocations: { where: { active: true } } } },
     },
     orderBy: [{ name: "asc" }, { id: "asc" }],
@@ -32,7 +32,6 @@ export const GET = async (req: Request) => {
     role: u.role,
     email: u.email,
     mobile: maskMobile(u.mobile),
-    hubUserId: u.hubUserId,
     activeCases: u._count.allocations,
     lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
     ready: result.ready,
@@ -41,8 +40,8 @@ export const GET = async (req: Request) => {
 
   if (q.format === "csv") {
     await logAudit(auth.user.id, "cutover.export", "cutover", undefined, { filter: q.filter, rows: rows.length });
-    const header = ["Name", "Role", "Email", "Mobile", "Hub user id", "Active cases", "Last sign-in", "Ready", "Problems"];
-    const lines = rows.map((r) => [r.name, r.role, r.email, r.mobile, r.hubUserId, r.activeCases, r.lastLoginAt ? format(new Date(r.lastLoginAt), "yyyy-MM-dd HH:mm") : "Never", r.ready ? "Yes" : "No", r.problems.join("; ")]);
+    const header = ["Name", "Role", "Email", "Mobile", "Active cases", "Last sign-in", "Ready", "Problems"];
+    const lines = rows.map((r) => [r.name, r.role, r.email, r.mobile, r.activeCases, r.lastLoginAt ? format(new Date(r.lastLoginAt), "yyyy-MM-dd HH:mm") : "Never", r.ready ? "Yes" : "No", r.problems.join("; ")]);
     return new Response(toCsv([header, ...lines]), {
       headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": 'attachment; filename="cutover-readiness.csv"', "cache-control": "private, no-store" },
     });

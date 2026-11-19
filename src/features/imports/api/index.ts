@@ -1,19 +1,10 @@
 import { api } from "@/lib/axios";
+import type { ImportAutoAllocateInput } from "../schemas";
 import type {
   ImportKind,
-  ImportListQuery,
-  ImportListResponse,
   ImportRunDetail,
-  ImportRunItem,
-  UnmatchedHubUser,
+  ImportUploadResult,
 } from "../types";
-
-// Fetches one page of import runs; "all" filters are left out of the query.
-export const getImports = async (query: ImportListQuery) => {
-  const params = Object.fromEntries(Object.entries(query).filter(([, v]) => v !== "" && v !== "all"));
-  const { data } = await api.get<ImportListResponse>("/imports", { params });
-  return data;
-};
 
 // Fetches one run with its full error list.
 export const getImport = async (id: string) => {
@@ -21,17 +12,13 @@ export const getImport = async (id: string) => {
   return data.run;
 };
 
-// Uploads a Loans or Allocations file and returns the run summary.
-export const uploadImport = async ({ type, file }: { type: ImportKind; file: File }) => {
+// Uploads a Customers file and returns the run summary (and the allocation result when `autoAllocate` was sent).
+export const uploadImport = async ({ type = "LOANS", file, autoAllocate }: { type?: ImportKind; file: File; autoAllocate?: ImportAutoAllocateInput }) => {
   const form = new FormData();
   form.append("type", type);
   form.append("file", file);
-  const { data } = await api.post<{ run: ImportRunItem }>("/imports", form);
-  return data.run;
+  if (autoAllocate) form.append("autoAllocate", JSON.stringify(autoAllocate));
+  const { data } = await api.post<ImportUploadResult>("/imports", form);
+  return data;
 };
 
-// Fetches hub users from recent allocation files that still have no app account.
-export const getUnmatchedHubUsers = async () => {
-  const { data } = await api.get<{ items: UnmatchedHubUser[] }>("/imports/unmatched-users");
-  return data.items;
-};

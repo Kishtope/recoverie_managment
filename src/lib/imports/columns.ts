@@ -23,7 +23,7 @@ const LOAN_COLUMNS = {
 
 const ALLOCATION_COLUMNS = {
   agreementNo: LOAN_COLUMNS.agreementNo,
-  hubUserId: ["hubuserid", "userid", "agentid", "hubagentid", "assignedtoid"],
+  agentEmail: ["agentemail", "email", "useremail", "emailid", "assignedto", "assignedtoemail", "agent"],
   agency: ["agency", "agencyname"],
   assignedOn: ["assignedon", "allocatedon", "allocationdate", "assigneddate"],
   validTill: ["validtill", "validuntil", "expireson"],
@@ -40,7 +40,7 @@ const PAYMENT_COLUMNS = {
 // Fields a file must have a column for; the rest are optional and a blank cell leaves the stored value untouched.
 const REQUIRED: Record<ImportType, string[]> = {
   LOANS: ["agreementNo", "customerName", "company", "branch"],
-  ALLOCATIONS: ["agreementNo", "hubUserId"],
+  ALLOCATIONS: ["agreementNo", "agentEmail"],
   PAYMENTS: ["agreementNo", "amount", "paidOn"],
 };
 
@@ -80,7 +80,7 @@ const REQUIRED_LABELS: Record<string, string> = {
   customerName: "Customer Name",
   company: "Company",
   branch: "Branch",
-  hubUserId: "Hub User ID",
+  agentEmail: "Agent Email",
   amount: "Amount",
   paidOn: "Paid On",
 };

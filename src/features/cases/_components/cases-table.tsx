@@ -23,7 +23,7 @@ const getInitials = (name: string) =>
 const orDash = (value?: string | number | null) => (value === null || value === undefined || value === "" ? "-" : value);
 
 // Columns of the Cases table. `showAgent` is off for agents (every case is their own). The customer cell holds a real link so keyboard
-// users can open the case; the whole row is clickable for mouse users via DataTable's onRowClick.
+// users can open the case; rows themselves are not clickable (the View details button does that).
 export const getCasesColumns = ({ showAgent }: { showAgent: boolean }): DataTableColumn<LoanListItem>[] => [
   {
     key: "customer",
@@ -72,7 +72,7 @@ export const getCasesColumns = ({ showAgent }: { showAgent: boolean }): DataTabl
     key: "actions",
     header: "",
     className: "text-right",
-    // Explicit "View details" button that opens the case page; stops propagation so the row click doesn't fire twice.
+    // Explicit "View details" button that opens the case page.
     cell: (l) => (
       <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/cases/${l.id}`} onClick={(e) => e.stopPropagation()} />}>
         <EyeIcon data-icon="inline-start" />

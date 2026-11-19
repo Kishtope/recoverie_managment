@@ -9,7 +9,6 @@ export type CutoverUser = {
   role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT" | "RECRUITER";
   email: string | null;
   mobile: string | null;
-  hubUserId: string | null;
   activeCases: number;
   lastLoginAt: string | null;
   ready: boolean;

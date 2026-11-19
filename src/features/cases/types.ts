@@ -47,6 +47,7 @@ export type LoanListQuery = {
   outcome: string;
   flag: string;
   tab?: string; // Follow-ups page tab: new | today | post | closed
+  sort?: string; // "recent" = newest uploaded first; omitted = by follow-up date
   page: number;
   pageSize: number;
 };

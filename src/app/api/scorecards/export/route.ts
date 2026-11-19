@@ -18,7 +18,7 @@ export const GET = async (req: Request) => {
   return new Response(new Uint8Array(file), {
     headers: {
       "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "content-disposition": `attachment; filename="caller-scorecard-${month}.xlsx"`,
+      "content-disposition": `attachment; filename="caller-performance-${month}.xlsx"`,
       "cache-control": "private, no-store",
     },
   });

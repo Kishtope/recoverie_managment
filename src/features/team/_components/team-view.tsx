@@ -83,7 +83,6 @@ export const TeamView = () => {
       role: user.role,
       agencyId: user.agency?.id ?? "",
       reportsToId: user.reportsTo?.id ?? "",
-      hubUserId: user.hubUserId ?? "",
       access: user.access as never,
       status,
     });

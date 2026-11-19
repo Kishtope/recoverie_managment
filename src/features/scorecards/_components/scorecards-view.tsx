@@ -140,8 +140,8 @@ export const ScorecardsView = () => {
     <EntityContainer
       header={
         <EntityHeader
-          title="Scorecards"
-          description="Ranking and monthly scorecard for every caller."
+          title="Performance"
+          description="How each caller did this month: collection against target, calls, contact rate and promises kept."
           actions={
             canManage && (
               <Button size="sm" variant="outline" disabled={exporting || !data?.items.length} onClick={() => exportFile(month)}>
@@ -155,9 +155,9 @@ export const ScorecardsView = () => {
       search={toolbar}
     >
       {isPending ? (
-        <LoadingView message="Loading scorecards…" />
+        <LoadingView message="Loading performance…" />
       ) : isError ? (
-        <ErrorView message={getErrorMessage(error, "Couldn't load scorecards.")} />
+        <ErrorView message={getErrorMessage(error, "Couldn't load performance.")} />
       ) : data.items.length === 0 ? (
         <EntityEmptyView empty_label="No callers" message="No callers in your team yet." />
       ) : (

@@ -51,7 +51,7 @@ export const POST = async (req: Request) => {
 
   const parsed = createUserSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
-  const { password, access, mobile, agencyId, reportsToId, hubUserId, ...rest } = parsed.data;
+  const { password, access, mobile, agencyId, reportsToId, ...rest } = parsed.data;
 
   try {
     const user = await prisma.user.create({
@@ -60,7 +60,6 @@ export const POST = async (req: Request) => {
         mobile: mobile || null,
         agencyId: agencyId || null,
         reportsToId: reportsToId || null,
-        hubUserId: hubUserId || null,
         passwordHash: await hashPassword(password),
         access: { create: access },
       },
@@ -70,7 +69,7 @@ export const POST = async (req: Request) => {
     return NextResponse.json({ user }, { status: 201 });
   } catch (e) {
     if ((e as { code?: string }).code === "P2002") {
-      return NextResponse.json({ error: "A user with this email, mobile or hub ID already exists" }, { status: 409 });
+      return NextResponse.json({ error: "A user with this email or mobile already exists" }, { status: 409 });
     }
     throw e;
   }

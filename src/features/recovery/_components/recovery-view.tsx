@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/data-table";
 import { EntityContainer } from "@/components/entity-components/entity-container";
@@ -14,6 +14,7 @@ import { TeamFilters } from "@/features/dashboard/_components/team-filters";
 import { getTeamUserColumns } from "@/features/dashboard/_components/team-users-table";
 import { useGetTeamUsers } from "@/features/dashboard/hooks/use-team-dashboard";
 import { useTeamParams } from "@/features/dashboard/hooks/use-team-params";
+import { AddPaymentDialog } from "@/features/payments/_components/add-payment-dialog";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,8 @@ const SORT_OPTIONS = [
 export const RecoveryView = () => {
   const router = useRouter();
   const params = useTeamParams();
+  // Whether the Add payment flow is open.
+  const [addingPayment, setAddingPayment] = useState(false);
   const { data, isPending, isError, error, isPlaceholderData } = useGetTeamUsers({ ...params.query, sort: params.sort, page: params.page, pageSize: PAGE_SIZE });
   const columns = useMemo(() => getTeamUserColumns(), []);
 
@@ -63,7 +66,14 @@ export const RecoveryView = () => {
 
   return (
     <EntityContainer
-      header={<EntityHeader title="Recovery" description="How each agent is doing: cases, conversations, outcomes and money collected." />}
+      header={
+        <EntityHeader
+          title="Recovery"
+          description="How each agent is doing: cases, conversations, outcomes and money collected."
+          newButtonLabel="Add payment"
+          onNew={() => setAddingPayment(true)}
+        />
+      }
       search={toolbar}
       pagination={<EntityPagination page={params.page} totalPages={totalPages} onPageChange={params.setPage} disabled={isPlaceholderData} />}
     >
@@ -85,6 +95,7 @@ export const RecoveryView = () => {
           <p className="text-xs text-muted-foreground">{data.collectedSource === "payments" ? "Collected is from imported payments." : "Collected is from outcomes agents recorded, not bank data."}</p>
         </>
       )}
+      <AddPaymentDialog open={addingPayment} onOpenChange={setAddingPayment} />
     </EntityContainer>
   );
 };

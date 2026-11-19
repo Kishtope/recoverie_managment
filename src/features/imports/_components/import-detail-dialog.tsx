@@ -21,7 +21,7 @@ const ERROR_COLUMNS: DataTableColumn<ImportRowError>[] = [
 // Quotes one CSV cell (commas, quotes and line breaks are escaped).
 const csvCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
 
-// Downloads the rejected rows as a CSV so the hub team can fix them and re-upload.
+// Downloads the rejected rows as a CSV so they can be fixed and re-upload.
 const downloadErrorsCsv = (fileName: string, errors: ImportRowError[]) => {
   const lines = [["Row", "Agreement no.", "Reason"], ...errors.map((e) => [e.row || "", e.agreementNo ?? "", e.reason])];
   const blob = new Blob([lines.map((l) => l.map(csvCell).join(",")).join("\n")], { type: "text/csv" });

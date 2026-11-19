@@ -25,7 +25,7 @@ test("header aliases map to fields; missing required columns are reported", () =
   const ok = mapColumns("LOANS", ["Agreement No.", "Customer Name", "Company", "Branch", "Overdue"], [{ row: 2, cells: ["A1", "X", "AF", "Mandla", "500"] }]);
   expect(ok.missing).toEqual([]);
   expect(ok.rows[0].values).toMatchObject({ agreementNo: "A1", overdueAmount: "500" });
-  expect(mapColumns("ALLOCATIONS", ["Agreement No"], []).missing).toEqual(["hubUserId"]);
+  expect(mapColumns("ALLOCATIONS", ["Agreement No"], []).missing).toEqual(["agentEmail"]);
 });
 
 test("a repeated agreement no. in one file becomes an error on the later row", () => {

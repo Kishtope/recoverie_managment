@@ -1,12 +1,6 @@
-import { Suspense } from "react";
-import { LoadingView } from "@/components/entity-components/loading-view";
-import { ScorecardsView } from "@/features/scorecards/_components/scorecards-view";
+import { redirect } from "next/navigation";
 
-// Thin page; Suspense is required because the view reads the URL's search params. The API rejects agents.
-const ScorecardsPage = () => (
-  <Suspense fallback={<LoadingView message="Loading scorecards…" />}>
-    <ScorecardsView />
-  </Suspense>
-);
+// The scorecards page is now called Performance; keep old bookmarks working.
+const ScorecardsPage = () => redirect("/performance");
 
 export default ScorecardsPage;

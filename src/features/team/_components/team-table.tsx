@@ -50,7 +50,6 @@ export const getTeamColumns = ({
   { key: "role", header: "Role", cell: (u) => <Badge variant="secondary">{ROLE_LABELS[u.role]}</Badge> },
   { key: "agency", header: "Agency", cell: (u) => orDash(u.agency?.name) },
   { key: "reportsTo", header: "Reports to", cell: (u) => orDash(u.reportsTo?.name) },
-  { key: "hubUserId", header: "Hub ID", cell: (u) => orDash(u.hubUserId) },
   {
     key: "branches",
     header: "Branches",

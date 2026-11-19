@@ -21,6 +21,8 @@ export const GET = async (req: Request) => {
   const branch = sp.get("branch");
   const outcome = sp.get("outcome");
   const flag = sp.get("flag");
+  // "recent" = newest uploaded first (Customers page); the default order is by follow-up.
+  const recent = sp.get("sort") === "recent";
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(sp.get("pageSize") ?? "10", 10) || 10));
 
@@ -70,7 +72,7 @@ export const GET = async (req: Request) => {
         allocations: { where: { active: true }, take: 1, select: { assignedOn: true, agent: { select: { id: true, name: true } } } },
         dispositions: { orderBy: { createdAt: "desc" }, take: 1, select: { ptpAmount: true } },
       },
-      orderBy: [{ nextFollowUpOn: { sort: "asc", nulls: "last" } }, { dpd: "desc" }, { overdueAmount: "desc" }, { id: "asc" }],
+      orderBy: recent ? [{ createdAt: "desc" }, { id: "asc" }] : [{ nextFollowUpOn: { sort: "asc", nulls: "last" } }, { dpd: "desc" }, { overdueAmount: "desc" }, { id: "asc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

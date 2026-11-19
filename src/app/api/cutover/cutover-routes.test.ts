@@ -6,10 +6,10 @@ const audited: string[] = [];
 const dbCalls: string[] = [];
 
 const users = [
-  { id: "u1", name: "Asha Agent", role: "AGENT", email: null, mobile: "9000000003", hubUserId: "HUB-1", lastLoginAt: new Date("2026-11-16T10:00:00Z"), status: "ACTIVE", _count: { allocations: 3 } },
-  { id: "u2", name: "Arun Agent", role: "AGENT", email: null, mobile: null, hubUserId: null, lastLoginAt: null, status: "ACTIVE", _count: { allocations: 0 } },
-  { id: "u3", name: "Meera Manager", role: "MANAGER", email: "m@x.com", mobile: null, hubUserId: null, lastLoginAt: new Date(), status: "ACTIVE", _count: { allocations: 0 } },
-  { id: "u4", name: "Gone", role: "AGENT", email: null, mobile: "9444444444", hubUserId: null, lastLoginAt: null, status: "DISABLED", _count: { allocations: 0 } },
+  { id: "u1", name: "Asha Agent", role: "AGENT", email: "a@x.com", mobile: "9000000003", lastLoginAt: new Date("2026-11-16T10:00:00Z"), status: "ACTIVE", _count: { allocations: 3 } },
+  { id: "u2", name: "Arun Agent", role: "AGENT", email: "ar@x.com", mobile: null, lastLoginAt: null, status: "ACTIVE", _count: { allocations: 0 } },
+  { id: "u3", name: "Meera Manager", role: "MANAGER", email: "m@x.com", mobile: null, lastLoginAt: new Date(), status: "ACTIVE", _count: { allocations: 0 } },
+  { id: "u4", name: "Gone", role: "AGENT", email: "g@x.com", mobile: "9444444444", lastLoginAt: null, status: "DISABLED", _count: { allocations: 0 } },
 ];
 
 mock.module("@/lib/auth", () => ({
@@ -64,7 +64,7 @@ test("readiness lists active users only, with the summary and masked mobiles", a
 test("the Not ready filter keeps only users with a problem, and says what it is", async () => {
   const body = await (await get("?filter=not-ready")).json();
   expect(body.items).toHaveLength(1);
-  expect(body.items[0]).toMatchObject({ id: "u2", ready: false, problems: ["No mobile number", "No hub user id", "Never signed in"] });
+  expect(body.items[0]).toMatchObject({ id: "u2", ready: false, problems: ["No mobile number", "Never signed in"] });
 });
 
 test("the CSV export has every filtered row, no full mobile numbers, and is audited", async () => {

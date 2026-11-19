@@ -7,35 +7,31 @@ export type ReadinessUser = {
   role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT" | "RECRUITER";
   email: string | null;
   mobile: string | null;
-  hubUserId: string | null;
   lastLoginAt: Date | null;
 };
 
 // One yes / no per check; null = the check does not apply to this role.
-export type ReadinessChecks = { mobile: boolean | null; email: boolean | null; hubId: boolean | null; signedIn: boolean };
+export type ReadinessChecks = { mobile: boolean | null; email: boolean; signedIn: boolean };
 
 export type Readiness = { checks: ReadinessChecks; problems: string[]; ready: boolean };
 
-// What a user needs before go-live. Agents sign in and get called with their mobile and are matched to allocations by hub user id;
-// everyone else signs in with an email. Everybody must have signed in once (that is how we know the login really works for them).
+// What a user needs before go-live. Agents get called on their mobile; everyone signs in with an email, and allocation files match agents by it. Everybody must have signed in once (that is how we know the login really works for them).
 export const userReadiness = (user: ReadinessUser): Readiness => {
   const agent = isWorkerRole(user.role);
   const checks: ReadinessChecks = {
     mobile: agent ? !!user.mobile : null,
-    email: agent ? null : !!user.email,
-    hubId: agent ? !!user.hubUserId : null,
+    email: !!user.email,
     signedIn: user.lastLoginAt !== null,
   };
   const problems = [
     checks.mobile === false && "No mobile number",
     checks.email === false && "No email",
-    checks.hubId === false && "No hub user id",
     !checks.signedIn && "Never signed in",
   ].filter((p): p is string => !!p);
   return { checks, problems, ready: problems.length === 0 };
 };
 
-export type ReadinessSummary = { total: number; ready: number; notReady: number; noMobile: number; noEmail: number; noHubId: number; neverSignedIn: number };
+export type ReadinessSummary = { total: number; ready: number; notReady: number; noMobile: number; noEmail: number; neverSignedIn: number };
 
 // Counts for the strip above the table, from the same per-user results the table shows.
 export const summarizeReadiness = (results: Readiness[]): ReadinessSummary => ({
@@ -44,7 +40,6 @@ export const summarizeReadiness = (results: Readiness[]): ReadinessSummary => ({
   notReady: results.filter((r) => !r.ready).length,
   noMobile: results.filter((r) => r.checks.mobile === false).length,
   noEmail: results.filter((r) => r.checks.email === false).length,
-  noHubId: results.filter((r) => r.checks.hubId === false).length,
   neverSignedIn: results.filter((r) => !r.checks.signedIn).length,
 });
 

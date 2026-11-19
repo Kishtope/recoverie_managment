@@ -6,6 +6,7 @@ import { hashPassword } from "../src/lib/password";
 import { addDays, toDbDate, todayIst } from "../src/lib/dates";
 import { seedBatches } from "./seed-batches";
 import { seedFollowUps } from "./seed-follow-ups";
+import { seedRecruiters } from "./seed-recruiters";
 import { seedRemap } from "./seed-remap";
 import { planDispositionEffects, type DispositionInput } from "../src/lib/dispositions";
 
@@ -18,7 +19,7 @@ const main = async () => {
     email: string,
     name: string,
     role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT",
-    extra: { reportsToId?: string; agencyId?: string; mobile?: string; hubUserId?: string; access: [("AF" | "BLD" | "MF" | "MMPL"), string][] },
+    extra: { reportsToId?: string; agencyId?: string; mobile?: string; access: [("AF" | "BLD" | "MF" | "MMPL"), string][] },
   ) => {
     const { access, ...rest } = extra;
     const user = await prisma.user.upsert({
@@ -44,9 +45,9 @@ const main = async () => {
     create: { name: "Ajay Agency", ownerUserId: owner.id },
   });
   await prisma.user.update({ where: { id: owner.id }, data: { agencyId: agency.id } });
-  const agent1 = await upsert("agent1@example.com", "Asha Agent", "AGENT", { hubUserId: "HUB-1001", reportsToId: manager.id, mobile: "9000000003", access: [["AF", "Balaghat"]] });
-  const agent2 = await upsert("agent2@example.com", "Arun Agent", "AGENT", { hubUserId: "HUB-1002", reportsToId: owner.id, agencyId: agency.id, mobile: "9000000004", access: [["BLD", "Mandla"]] });
-  const agent3 = await upsert("field1@example.com", "Farah Agent", "AGENT", { hubUserId: "HUB-1003", reportsToId: manager.id, mobile: "9000000005", access: [["AF", "Khairlanji"]] });
+  const agent1 = await upsert("agent1@example.com", "Asha Agent", "AGENT", { reportsToId: manager.id, mobile: "9000000003", access: [["AF", "Balaghat"]] });
+  const agent2 = await upsert("agent2@example.com", "Arun Agent", "AGENT", { reportsToId: owner.id, agencyId: agency.id, mobile: "9000000004", access: [["BLD", "Mandla"]] });
+  const agent3 = await upsert("field1@example.com", "Farah Agent", "AGENT", { reportsToId: manager.id, mobile: "9000000005", access: [["AF", "Khairlanji"]] });
   // Sample cases so the Cases page is not empty in dev: 12 loans, the first 9 allocated (3 each), the rest unassigned.
   const companyBranch: ["AF" | "BLD", string][] = [["AF", "Balaghat"], ["BLD", "Mandla"], ["AF", "Khairlanji"]];
   const holders = [
@@ -181,6 +182,7 @@ const main = async () => {
   await seedBatches();
   await seedFollowUps();
   await seedRemap(PASSWORD);
+  await seedRecruiters(PASSWORD);
   console.log("Seeded. Password for all users:", PASSWORD);
 };
 
