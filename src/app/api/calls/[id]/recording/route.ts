@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // Streams a call's recording to someone allowed to see the call. The provider's URL is never given to the browser: it is fetched here,
 // so access is checked on every play and the play is audited. Mock calls have no recording (404).
 export const GET = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

@@ -1,4 +1,4 @@
-export type NotificationType = "FOLLOW_UP_DUE" | "PTP_DUE" | "ESCALATION" | "REASSIGNED" | "RECRUITER_DEADLINE";
+export type NotificationType = "FOLLOW_UP_DUE" | "PTP_DUE" | "ESCALATION" | "REASSIGNED";
 
 // One notification as the bell shows it; the customer and agreement come from the loan it is about.
 export type NotificationItem = {

@@ -25,8 +25,6 @@ mock.module("@/lib/prisma", () => ({
     },
   },
 }));
-// The recruiter escalation job has its own rules; here it is stubbed so only the due-notification behaviour is under test.
-mock.module("@/lib/recruiter-escalation", () => ({ runRecruiterEscalation: async () => ({ day: "2026-11-17", escalated: 0, stranded: 0, reminded: 0 }) }));
 const { POST } = await import("./route");
 
 const call = async (secret: string | null) =>

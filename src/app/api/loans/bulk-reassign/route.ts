@@ -18,7 +18,7 @@ export const POST = async (req: Request) => {
   const { loanIds, agentId } = parsed.data;
 
   const agent = await prisma.user.findFirst({
-    where: { AND: [userScopeWhere(auth.user), { id: agentId, status: "ACTIVE", role: { in: ["AGENT", "AGENCY_OWNER", "RECRUITER"] } }] },
+    where: { AND: [userScopeWhere(auth.user), { id: agentId, status: "ACTIVE", role: { in: ["AGENT", "AGENCY_OWNER"] } }] },
     select: { id: true, name: true, agencyId: true },
   });
   if (!agent) return NextResponse.json({ error: "Choose an agent inside your team" }, { status: 400 });

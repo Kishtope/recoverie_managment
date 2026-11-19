@@ -129,11 +129,6 @@ export const CaseDetailView = ({ id }: { id: string }) => {
           <PtpStatusBadge status={loan.ptpStatus} />
           <RiskTagBadge tag={loan.riskTag} />
           {loan.doNotCall && <Badge variant="destructive">Do not call</Badge>}
-          {loan.recruiterDeadline && (
-            <Badge variant={loan.recruiterDeadline.daysLeft <= 2 ? "destructive" : "secondary"}>
-              {loan.recruiterDeadline.overdue ? "Escalating today" : `${loan.recruiterDeadline.daysLeft} ${loan.recruiterDeadline.daysLeft === 1 ? "day" : "days"} left with recruiter`}
-            </Badge>
-          )}
           <OutcomeBadge outcome={loan.lastOutcome} />
           <FollowUpBadge day={loan.nextFollowUpOn} />
           {loan.fieldVisitFlag && <Badge variant="outline">Field visit pending</Badge>}

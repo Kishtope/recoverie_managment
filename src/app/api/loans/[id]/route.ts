@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { requireUser, loanScopeWhere } from "@/lib/auth";
 import { callingWindowMessage, isWithinCallingWindow } from "@/lib/calling-window";
 import { canDecideSettlement, waiverPct } from "@/lib/settlement";
-import { recruiterDeadline } from "@/lib/recruiter-deadline";
 import { STALE_CALL_HOURS, isWorkerRole } from "@/lib/constants";
 import { checkCallRules } from "@/lib/call-rules";
 import { countCallsToday } from "@/lib/calls-today";
@@ -25,7 +24,7 @@ const maskReferences = (value: unknown) =>
 
 // One case with its customer and full outcome history. A case outside the caller's scope is a 404 (not 403) so its existence is not leaked.
 export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 
@@ -91,9 +90,6 @@ export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> 
       canReject: pending && (auth.user.role === "ADMIN" || auth.user.role === "MANAGER"),
     };
   });
-  // While a recruiter holds the case: how many days they have left before it escalates (an open promise keeps the timer running).
-  const recruiterLimit = holder?.role === "RECRUITER" ? await getSetting("recruiter.escalationDays") : null;
-  const promisedFor = l.lastOutcome === "PTP" || l.lastOutcome === "PART_PAID" ? fromDbDate(l.nextFollowUpOn) : null;
   const history = l.dispositions.map((d) => ({ outcome: d.outcome, ptpDate: fromDbDate(d.ptpDate), day: todayIst(d.createdAt) }));
   const paymentDays = l.payments.map((p) => ({ paidOn: fromDbDate(p.paidOn) as string }));
   const loan: LoanDetail = {
@@ -119,7 +115,6 @@ export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> 
     settlements,
     canRecordPayment: l.status === "ACTIVE" && (canAddOutcome || !isWorkerRole(auth.user.role)),
     canRequestSettlement: canAddOutcome && !l.escalatedAt && !settlements.some((s) => s.status === "PENDING"),
-    recruiterDeadline: recruiterLimit !== null && l.allocations[0] ? recruiterDeadline(l.allocations[0].assignedOn, recruiterLimit, today, promisedFor) : null,
     canManageCompliance: !isWorkerRole(auth.user.role),
     customer: {
       name: l.customer.name,

@@ -12,7 +12,6 @@ enum Role {
   MANAGER
   AGENCY_OWNER
   AGENT
-  RECRUITER // sourcing partner: works their own customers like an agent, but only for a limited number of days, then the case escalates
 }
 
 enum UserStatus {
@@ -209,7 +208,6 @@ model Allocation {
   validTill    DateTime?
   active       Boolean   @default(true)
   endedAt      DateTime?
-  endReason    String? // why it ended when not a plain reassign: "RECRUITER_ESCALATION"
   importRunId  String?
   createdAt    DateTime  @default(now())
 
@@ -346,7 +344,6 @@ enum NotificationType {
   PTP_DUE
   ESCALATION
   REASSIGNED
-  RECRUITER_DEADLINE
 }
 
 // An in-app message for one user about one loan; deduped so the morning job can run twice safely.

@@ -5,13 +5,12 @@ export const BRANCHES = ["Khairlanji", "Balaghat", "Mandla", "Chhindwara", "Raip
 export const COMPANIES = ["AF", "BLD", "MF", "MMPL"] as const;
 
 // Roles in display order (mirrors the Prisma `Role` enum) with the label shown in the UI.
-export const ROLES = ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"] as const;
+export const ROLES = ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] as const;
 export const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
   ADMIN: "Admin",
   MANAGER: "Manager",
   AGENCY_OWNER: "Agency owner",
   AGENT: "Agent",
-  RECRUITER: "Recruiter",
 };
 
 // Outcome codes an agent can record on a case (mirrors the Prisma `Outcome` enum) with the label shown in the UI.
@@ -39,12 +38,8 @@ export const STALE_CALL_HOURS = 2;
 export const MAX_CALLS_PER_DAY = 3;
 
 // Roles that work cases themselves (call, record outcomes, see only their own cases); everyone else supervises.
-export const WORKER_ROLES = ["AGENT", "RECRUITER"] as const;
-export const isWorkerRole = (role: string | undefined | null): role is (typeof WORKER_ROLES)[number] => role === "AGENT" || role === "RECRUITER";
-
-// A recruiter keeps a case this many days before it escalates to a caller (Admin setting; project.md says 10 or 15), with a reminder this many days before.
-export const RECRUITER_ESCALATION_DAYS = 10;
-export const RECRUITER_REMINDER_DAYS = 2;
+export const WORKER_ROLES = ["AGENT"] as const;
+export const isWorkerRole = (role: string | undefined | null): role is (typeof WORKER_ROLES)[number] => role === "AGENT";
 
 // Largest share of an overdue amount a Manager may waive in a settlement without an Admin (Admin setting).
 export const SETTLEMENT_MANAGER_LIMIT_PCT = 20;

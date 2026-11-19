@@ -6,7 +6,7 @@ import type { PendingCall } from "@/features/calls/types";
 
 // The agent's call that still needs an outcome (or null), for the banner on every page.
 export const GET = async () => {
-  const auth = await requireUser(["AGENT", "RECRUITER"]);
+  const auth = await requireUser(["AGENT"]);
   if ("error" in auth) return auth.error;
 
   const c = await findPendingCall(prisma, auth.user.id);

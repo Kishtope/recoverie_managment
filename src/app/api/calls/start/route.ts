@@ -15,7 +15,7 @@ import { startCallSchema } from "@/features/calls/schemas";
 // closed (409) -> agent has no call waiting for an outcome (409) -> agent mobile (400) -> create the Call -> ask the provider.
 // The customer's real number is read from the DB here and goes only to the provider; the browser sends just "primary" or "alt".
 export const POST = async (req: Request) => {
-  const auth = await requireUser(["AGENT", "RECRUITER"]);
+  const auth = await requireUser(["AGENT"]);
   if ("error" in auth) return auth.error;
 
   const parsed = startCallSchema.safeParse(await req.json().catch(() => null));

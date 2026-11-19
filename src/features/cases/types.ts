@@ -99,8 +99,6 @@ export type LoanDetail = {
   canRecordPayment: boolean;
   // Owning agent / recruiter with no open request and no dispute: may ask for a settlement.
   canRequestSettlement: boolean;
-  // Set while a recruiter holds the case: the day their time runs out and how many days are left.
-  recruiterDeadline: { deadline: string; daysLeft: number; overdue: boolean } | null;
   // Manager / Agency owner / Admin may resolve a dispute and set or clear do-not-call.
   canManageCompliance: boolean;
   customer: {

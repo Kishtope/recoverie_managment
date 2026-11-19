@@ -5,7 +5,7 @@ import type { NotificationsResponse } from "@/features/notifications/types";
 
 // The caller's own latest notifications (newest first, up to 30) and how many are unread. Everyone sees only their own.
 export const GET = async () => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
   if ("error" in auth) return auth.error;
 
   const [rows, unread] = await Promise.all([

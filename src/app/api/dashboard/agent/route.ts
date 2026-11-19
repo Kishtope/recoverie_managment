@@ -10,7 +10,7 @@ import type { AgentDashboard } from "@/features/dashboard/types";
 
 // Agent home numbers, scoped to the agent's own active cases. "Today" and "this month" are Indian-calendar based.
 export const GET = async () => {
-  const auth = await requireUser(["AGENT", "RECRUITER"]);
+  const auth = await requireUser(["AGENT"]);
   if ("error" in auth) return auth.error;
 
   const today = todayIst();

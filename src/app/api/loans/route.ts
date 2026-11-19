@@ -11,7 +11,7 @@ import type { LoanListItem } from "@/features/cases/types";
 // Lists loans the caller may see (by active allocation) with search, follow-up / outcome / flag / agent / company / branch filters and paging.
 // Default order: next follow-up first (no follow-up last), then higher DPD, then bigger overdue amount. Mobile numbers are masked.
 export const GET = async (req: Request) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
   if ("error" in auth) return auth.error;
 
   const sp = new URL(req.url).searchParams;

@@ -27,7 +27,7 @@ export const runAutoAllocation = async ({
   agreementNos,
 }: Pick<AutoAllocateInput, "rule" | "agentIds" | "dryRun"> & { user: CurrentUser; agreementNos?: string[] }): Promise<AllocationRunOutcome> => {
   const people = await prisma.user.findMany({
-    where: { AND: [userScopeWhere(user), { id: { in: agentIds }, status: "ACTIVE", role: { in: ["AGENT", "RECRUITER"] } }] },
+    where: { AND: [userScopeWhere(user), { id: { in: agentIds }, status: "ACTIVE", role: { in: ["AGENT"] } }] },
     select: { id: true, name: true, agencyId: true, access: { select: { company: true, branch: true } }, _count: { select: { allocations: { where: { active: true } } } } },
   });
   if (people.length === 0) return { ok: false, error: "Choose active agents inside your team" };

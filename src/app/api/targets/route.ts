@@ -15,7 +15,7 @@ export const PUT = async (req: Request) => {
   const { userId, month, collectionAmount, casesResolved } = parsed.data;
 
   const person = await prisma.user.findFirst({
-    where: { AND: [userScopeWhere(auth.user), { id: userId, role: { in: ["AGENT", "AGENCY_OWNER", "RECRUITER"] } }] },
+    where: { AND: [userScopeWhere(auth.user), { id: userId, role: { in: ["AGENT", "AGENCY_OWNER"] } }] },
     select: { id: true },
   });
   if (!person) return NextResponse.json({ error: "Choose a caller inside your team" }, { status: 400 });

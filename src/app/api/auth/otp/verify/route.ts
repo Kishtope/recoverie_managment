@@ -31,7 +31,7 @@ export const POST = async (req: Request) => {
   const used = await prisma.otpCode.updateMany({ where: { id: record.id, consumedAt: null }, data: { consumedAt: now } });
   if (used.count === 0) return invalid();
 
-  const user = await prisma.user.findFirst({ where: { id: record.userId, role: { in: ["AGENT", "RECRUITER"] }, status: "ACTIVE" } });
+  const user = await prisma.user.findFirst({ where: { id: record.userId, role: { in: ["AGENT"] }, status: "ACTIVE" } });
   if (!user) return invalid();
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: now } });

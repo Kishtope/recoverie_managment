@@ -2,7 +2,7 @@ import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/password";
 import { addDays, todayIst } from "../src/lib/dates";
 
-// Dev/test data for the remap features: a recruiter with two cases (one close to its deadline), settlement requests (one inside a Manager's
+// Dev/test data for the remap features: settlement requests (one inside a Manager's
 // limit, one above it), a payment recorded in the app with a receipt, monthly targets, and a do-not-call customer.
 // Safe to re-run: every step checks whether its data already exists. Needs the base seed's users and SEED-xxxx loans.
 export const seedRemap = async (password: string) => {
@@ -14,24 +14,6 @@ export const seedRemap = async (password: string) => {
   const agent3 = await prisma.user.findUnique({ where: { email: "field1@example.com" } });
   const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
   if (!manager || !agent1 || !agent2 || !agent3 || !admin) return;
-
-  // Recruiter, reporting to the manager, with access to the same branch as the cases below.
-  const recruiter = await prisma.user.upsert({
-    where: { email: "recruiter1@example.com" },
-    update: { name: "Rohan Recruiter", role: "RECRUITER", reportsToId: manager.id, mobile: "9000000016" },
-    create: { email: "recruiter1@example.com", name: "Rohan Recruiter", role: "RECRUITER", passwordHash: await hashPassword(password), reportsToId: manager.id, mobile: "9000000016" },
-  });
-  await prisma.userAccess.deleteMany({ where: { userId: recruiter.id } });
-  await prisma.userAccess.create({ data: { userId: recruiter.id, company: "AF", branch: "Balaghat" } });
-
-  // Two unassigned cases go to the recruiter: one assigned 8 days ago (2 days left of the default 10), one 2 days ago.
-  for (const [n, daysAgo] of [[10, 8], [11, 2]] as const) {
-    const loan = await loanOf(n);
-    if (!loan || (await prisma.allocation.findFirst({ where: { loanId: loan.id, active: true } }))) continue;
-    await prisma.allocation.create({
-      data: { loanId: loan.id, activeLoanId: loan.id, agentId: recruiter.id, assignedById: admin.id, assignedOn: new Date(Date.now() - daysAgo * 86_400_000) },
-    });
-  }
 
   // Settlement requests by agent1: SEED-0004 waives 30% (only an Admin can approve), SEED-0007 waives 10% (a Manager can).
   for (const [n, requestedFraction] of [[4, 0.7], [7, 0.9]] as const) {
@@ -59,7 +41,7 @@ export const seedRemap = async (password: string) => {
 
   // Monthly targets for this month: money and cases to resolve.
   const month = today.slice(0, 7);
-  for (const [user, collectionAmount, casesResolved] of [[agent1, 50000, 5], [agent2, 40000, 4], [agent3, 30000, 3], [recruiter, 20000, 2]] as const) {
+  for (const [user, collectionAmount, casesResolved] of [[agent1, 50000, 5], [agent2, 40000, 4], [agent3, 30000, 3]] as const) {
     await prisma.agentTarget.upsert({
       where: { userId_month: { userId: user.id, month } },
       update: { collectionAmount, casesResolved },

@@ -6,7 +6,6 @@ import { hashPassword } from "../src/lib/password";
 import { addDays, toDbDate, todayIst } from "../src/lib/dates";
 import { seedBatches } from "./seed-batches";
 import { seedFollowUps } from "./seed-follow-ups";
-import { seedRecruiters } from "./seed-recruiters";
 import { seedRemap } from "./seed-remap";
 import { planDispositionEffects, type DispositionInput } from "../src/lib/dispositions";
 
@@ -182,7 +181,6 @@ const main = async () => {
   await seedBatches();
   await seedFollowUps();
   await seedRemap(PASSWORD);
-  await seedRecruiters(PASSWORD);
   console.log("Seeded. Password for all users:", PASSWORD);
 };
 

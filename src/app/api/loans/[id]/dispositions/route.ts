@@ -12,7 +12,7 @@ import type { DispositionResult } from "@/features/cases/types";
 // Records an outcome on a case. Only the agent the case is currently allocated to may do this (ownCaseWhere = their active cases);
 // anything else is a 404. The Disposition and the Loan's follow-up state change together in one transaction.
 export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["AGENT", "RECRUITER"]);
+  const auth = await requireUser(["AGENT"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

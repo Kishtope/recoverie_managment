@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BadgePercentIcon, HandshakeIcon, LayoutDashboardIcon, RotateCcwIcon, SaveIcon, WaypointsIcon } from "lucide-react";
+import { BadgePercentIcon, LayoutDashboardIcon, RotateCcwIcon, SaveIcon, WaypointsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -18,14 +18,12 @@ import { useGetSettings, useUpdateSettings } from "../hooks/use-settings";
 import { updateSettingsSchema } from "../schemas";
 
 // Raw form text; converted to numbers only when validating on submit.
-type Values = { tries: string; grace: string; target: string; escalation: string; reminder: string; settlementLimit: string };
+type Values = { tries: string; grace: string; target: string; settlementLimit: string };
 
 // Form text for the current settings.
 const toValues = (s: SettingValues): Values => ({
   tries: String(s["followUp.notReachableTries"]),
   grace: String(s["ptp.graceDays"]),
-  escalation: String(s["recruiter.escalationDays"]),
-  reminder: String(s["recruiter.reminderDays"]),
   settlementLimit: String(s["settlement.managerLimitPct"]),
   target: s["dashboard.monthlyTargetPct"] === null ? "" : String(s["dashboard.monthlyTargetPct"]),
 });
@@ -86,8 +84,6 @@ const SettingsForm = ({ initial }: { initial: SettingValues }) => {
     const parsed = updateSettingsSchema.safeParse({
       "followUp.notReachableTries": num(values.tries),
       "ptp.graceDays": num(values.grace),
-      "recruiter.escalationDays": num(values.escalation),
-      "recruiter.reminderDays": num(values.reminder),
       "settlement.managerLimitPct": num(values.settlementLimit),
       "dashboard.monthlyTargetPct": num(values.target) ?? null,
     });
@@ -96,10 +92,8 @@ const SettingsForm = ({ initial }: { initial: SettingValues }) => {
       const fieldOf = (path: PropertyKey[]) =>
         path[0] === "followUp.notReachableTries" ? "tries"
           : path[0] === "ptp.graceDays" ? "grace"
-            : path[0] === "recruiter.escalationDays" ? "escalation"
-              : path[0] === "recruiter.reminderDays" ? "reminder"
-                : path[0] === "settlement.managerLimitPct" ? "settlementLimit"
-                : "target";
+          : path[0] === "settlement.managerLimitPct" ? "settlementLimit"
+            : "target";
       setErrors(Object.fromEntries(parsed.error.issues.map((i) => [fieldOf(i.path), i.message])));
       return;
     }
@@ -113,12 +107,6 @@ const SettingsForm = ({ initial }: { initial: SettingValues }) => {
         <NumberField id="tries" label="Not-reachable tries" unit="in a row" value={values.tries} error={errors.tries} onChange={set("tries")} hint="This many not-reachable outcomes in a row flag the case for a field visit." />
         <Separator />
         <NumberField id="grace" label="PTP grace days" unit="days" value={values.grace} error={errors.grace} onChange={set("grace")} hint="A promise to pay counts as broken only after the promised day plus these days." />
-      </Section>
-
-      <Section icon={HandshakeIcon} title="Recruiters" description="How long a recruiter keeps a case before it moves to a caller on their team.">
-        <NumberField id="escalation" label="Escalate after" unit="days" value={values.escalation} error={errors.escalation} onChange={set("escalation")} hint="Usually 10 or 15. A promise to pay dated after this keeps the timer running until that day." />
-        <Separator />
-        <NumberField id="reminder" label="Remind the recruiter" unit="days before" value={values.reminder} error={errors.reminder} onChange={set("reminder")} hint="The recruiter gets a notification this many days before the case escalates." />
       </Section>
 
       <Section icon={BadgePercentIcon} title="Settlements" description="How much of an overdue amount a Manager may waive without an Admin.">

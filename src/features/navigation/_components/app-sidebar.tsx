@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseIcon, HandshakeIcon, LayersIcon, CalendarClockIcon, RocketIcon, LayoutDashboardIcon, PhoneIcon, SettingsIcon, TrendingUpIcon, TrophyIcon, UploadIcon, UsersIcon } from "lucide-react";
+import { BriefcaseIcon, LayersIcon, CalendarClockIcon, RocketIcon, LayoutDashboardIcon, PhoneIcon, SettingsIcon, TrendingUpIcon, TrophyIcon, UploadIcon, UsersIcon } from "lucide-react";
 import type { Role } from "@/generated/prisma/client";
 import { isWorkerRole } from "@/lib/constants";
 import { useMe } from "@/features/auth/hooks/use-me";
@@ -27,10 +27,9 @@ import { NavUser } from "./nav-user";
 type NavItem = { title: string; agentTitle?: string; href: string; icon: typeof UsersIcon; roles?: Role[] };
 const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboardIcon },
-  { title: "Cases", agentTitle: "My cases", href: "/cases", icon: BriefcaseIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"] },
+  { title: "Cases", agentTitle: "My cases", href: "/cases", icon: BriefcaseIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] },
   { title: "Batches", href: "/batches", icon: LayersIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
-  { title: "Recruiters", href: "/recruiters", icon: HandshakeIcon, roles: ["ADMIN", "MANAGER"] },
-  { title: "Follow-ups", href: "/follow-ups", icon: CalendarClockIcon, roles: ["AGENT", "RECRUITER"] },
+  { title: "Follow-ups", href: "/follow-ups", icon: CalendarClockIcon, roles: ["AGENT"] },
   // TODO: Calls module is hidden from the sidebar for now (the page and API still exist). We will add it back in a future feature module.
   // { title: "Calls", agentTitle: "My calls", href: "/calls", icon: PhoneIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] },
   { title: "Recovery", href: "/recovery", icon: TrendingUpIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },

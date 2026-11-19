@@ -5,7 +5,7 @@ import { markReadSchema } from "@/features/notifications/schemas";
 
 // Marks the caller's own notifications read: the given ids, or every unread one when no ids are sent. Other people's ids are ignored.
 export const POST = async (req: Request) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "RECRUITER"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
   if ("error" in auth) return auth.error;
 
   const parsed = markReadSchema.safeParse(await req.json().catch(() => ({})));
