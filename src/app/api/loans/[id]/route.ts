@@ -5,8 +5,9 @@ import { canDecideSettlement, waiverPct } from "@/lib/settlement";
 import { STALE_CALL_HOURS, isWorkerRole } from "@/lib/constants";
 import { checkCallRules } from "@/lib/call-rules";
 import { countCallsToday } from "@/lib/calls-today";
-import { countBrokenPromises, deriveCaseStatus, derivePtpStatus, deriveRiskTag } from "@/lib/case-status";
+import { countBrokenPromises, deriveCaseStatus, derivePtpStatus, deriveRiskTag, ptpStatusAt } from "@/lib/case-status";
 import { fromDbDate, todayIst } from "@/lib/dates";
+import { dispositionInclude, toDispositionItem } from "@/lib/disposition-item";
 import { maskMobile } from "@/lib/mask";
 import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
@@ -31,9 +32,9 @@ export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> 
   const l = await prisma.loan.findFirst({
     where: { AND: [{ id }, loanScopeWhere(auth.user)] },
     include: {
-      customer: true,
+      customer: { include: { retailer: { select: { id: true, code: true, name: true, city: true, mobile: true } } } },
       allocations: { where: { active: true }, take: 1, select: { assignedOn: true, agent: { select: { id: true, name: true, role: true } } } },
-      dispositions: { orderBy: { createdAt: "desc" }, include: { agent: { select: { id: true, name: true } } } },
+      dispositions: { orderBy: { createdAt: "desc" }, include: dispositionInclude },
       settlements: { orderBy: { createdAt: "desc" }, take: 20 },
       payments: { orderBy: { paidOn: "desc" }, select: { id: true, amount: true, paidOn: true, mode: true, receiptNo: true, source: true } },
     },
@@ -111,6 +112,8 @@ export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> 
     ptpStatus: derivePtpStatus(history, today, paymentDays),
     riskTag: deriveRiskTag(l.dpd, !!l.escalatedAt, countBrokenPromises(history, today, paymentDays)),
     doNotCall: l.customer.doNotCall,
+    notReachableCount: l.notReachableCount,
+    retailer: l.customer.retailer,
     payments: l.payments.map((p) => ({ id: p.id, amount: p.amount.toNumber(), paidOn: fromDbDate(p.paidOn) as string, mode: p.mode, receiptNo: p.receiptNo, source: p.source === "MANUAL" ? ("MANUAL" as const) : ("IMPORT" as const) })),
     settlements,
     canRecordPayment: l.status === "ACTIVE" && (canAddOutcome || !isWorkerRole(auth.user.role)),
@@ -132,18 +135,8 @@ export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> 
     callBlocked,
     currentCall,
     calls,
-    dispositions: l.dispositions.map((d) => ({
-      id: d.id,
-      outcome: d.outcome,
-      ptpDate: fromDbDate(d.ptpDate),
-      ptpAmount: d.ptpAmount?.toNumber() ?? null,
-      paidAmount: d.paidAmount?.toNumber() ?? null,
-      nextFollowUpOn: fromDbDate(d.nextFollowUpOn),
-      remarks: d.remarks,
-      createdAt: d.createdAt.toISOString(),
-      agent: d.agent,
-      callId: d.callId,
-    })),
+    // Each promise carries its own state (pending / kept / broken) so the history shows how every one ended.
+    dispositions: l.dispositions.map((d, i) => toDispositionItem(d, d.outcome === "PTP" ? ptpStatusAt(history, i, today, paymentDays) : null)),
   };
   return NextResponse.json({ loan });
 };

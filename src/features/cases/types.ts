@@ -1,5 +1,5 @@
 import type { CallItem } from "@/features/calls/types";
-import type { OUTCOMES } from "@/lib/constants";
+import type { OUTCOMES, QuestionCategoryCode } from "@/lib/constants";
 import type { PaymentItem } from "@/features/payments/types";
 import type { SettlementItem } from "@/features/settlements/types";
 import type { CaseStatus, PtpStatus, RiskTag } from "@/lib/case-status";
@@ -54,18 +54,30 @@ export type LoanListQuery = {
   pageSize: number;
 };
 
-// One recorded outcome in a case's history.
+// One customer answer saved with an interaction. The question text is the copy taken when it was saved, so it never changes.
+export type ResponseItem = { id: string; questionText: string; category: QuestionCategoryCode; response: string; remarks: string | null };
+
+// One recorded interaction (outcome + customer answers) in a case's history.
 export type DispositionItem = {
   id: string;
   outcome: OutcomeCode;
+  outcomeDetail: string | null; // NO_ANSWER | BUSY | REFUSED | DISPUTE
   ptpDate: string | null;
   ptpAmount: number | null;
+  ptpStatus: PtpStatus | null; // only for a promise: pending, kept or broken
   paidAmount: number | null;
+  paymentDate: string | null;
+  transactionRef: string | null;
+  remainingAmount: number | null;
+  callbackTime: string | null; // "HH:mm"; the callback date is nextFollowUpOn
+  reason: string | null;
+  category: string | null;
   nextFollowUpOn: string | null;
   remarks: string | null;
   createdAt: string;
   agent: { id: string; name: string };
   callId: string | null; // the call this outcome was recorded for, if any
+  responses: ResponseItem[];
 };
 
 // Why the Call button is off for the agent who owns the case (shown as a muted line next to it).
@@ -95,6 +107,8 @@ export type LoanDetail = {
   ptpStatus: PtpStatus | null; // state of the most recent promise
   riskTag: RiskTag;
   doNotCall: boolean;
+  notReachableCount: number; // consecutive not-reachable outcomes so far (the next one is attempt number + 1)
+  retailer: { id: string; code: string; name: string; city: string | null; mobile: string } | null; // the retailer holding the customer, if any
   payments: PaymentItem[];
   settlements: SettlementItem[];
   // Agent / recruiter who owns the case, or a supervisor: may record a payment received.
@@ -131,7 +145,7 @@ export type LoanDetailResponse = { loan: LoanDetail };
 // What the server says a saved outcome did to the case, used for the confirmation toast.
 export type DispositionResult = {
   disposition: DispositionItem;
-  effects: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean; callLinked: boolean };
+  effects: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean; callLinked: boolean; answers: number };
 };
 
 // Result of POST /api/loans/bulk-reassign: how many cases moved and why the others did not.

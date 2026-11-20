@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { planDispositionEffects, type LoanFollowUpState } from "./dispositions";
+import { planDispositionEffects, suggestFollowUp, type LoanFollowUpState } from "./dispositions";
 
 const NOW = new Date("2026-11-17T10:00:00.000Z");
 const fresh: LoanFollowUpState = { notReachableCount: 0, fieldVisitFlag: false, escalatedAt: null };
@@ -46,4 +46,18 @@ test("REFUSED_DISPUTE escalates and ends follow-up; WRONG_NUMBER only ends follo
 
 test("PART_PAID and CALLBACK keep the date the agent chose", () => {
   expect(planDispositionEffects(fresh, { outcome: "PART_PAID", nextFollowUpOn: "2026-11-25" }, NOW).nextFollowUpOn).toBe("2026-11-25");
+});
+
+test("NOT_INTERESTED ends follow-up without escalating", () => {
+  const r = planDispositionEffects(fresh, { outcome: "NOT_INTERESTED", nextFollowUpOn: "2026-11-20" }, NOW);
+  expect(r.nextFollowUpOn).toBeNull();
+  expect(r.escalatedAt).toBeNull();
+});
+
+test("suggested follow-up dates: busy today, no answer / callback tomorrow, part payment in a week, nothing for the rest", () => {
+  expect(suggestFollowUp("BUSY", "2026-11-30")).toBe("2026-11-30");
+  expect(suggestFollowUp("NO_ANSWER", "2026-11-30")).toBe("2026-12-01");
+  expect(suggestFollowUp("CALLBACK", "2026-11-30")).toBe("2026-12-01");
+  expect(suggestFollowUp("PART_PAID", "2026-11-30")).toBe("2026-12-07");
+  for (const choice of ["PTP", "PAID", "REFUSED", "DISPUTE", "WRONG_NUMBER", "NOT_INTERESTED", ""]) expect(suggestFollowUp(choice, "2026-11-30")).toBe("");
 });

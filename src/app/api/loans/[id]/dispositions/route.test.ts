@@ -10,9 +10,16 @@ mock.module("@/lib/auth", () => ({
   loanScopeWhere: () => ({}),
   ownCaseWhere: () => ({}),
 }));
+// Questions the fake database knows about (id -> text); the route only accepts active ones. Saved answers are collected here.
+let activeQuestions: { id: string; text: string; category: string }[] = [];
+const savedAnswers: Record<string, unknown>[] = [];
 const tx = {
+  customerQuestion: {
+    findMany: async ({ where }: { where: { id: { in: string[] } } }) => activeQuestions.filter((q) => where.id.in.includes(q.id)),
+  },
+  interactionResponse: { createMany: async ({ data }: { data: Record<string, unknown>[] }) => (savedAnswers.push(...data), { count: data.length }) },
   loan: {
-    findFirst: async () => ({ status: "ACTIVE", notReachableCount: 0, fieldVisitFlag: false, escalatedAt: null }),
+    findFirst: async () => ({ status: "ACTIVE", notReachableCount: 0, fieldVisitFlag: false, escalatedAt: null, overdueAmount: { toNumber: () => 10000 } }),
     update: async () => ({}),
   },
   call: {
@@ -35,6 +42,8 @@ const save = async (loanId: string) =>
   (await POST(new Request("http://x", { method: "POST", body: JSON.stringify({ outcome: "WRONG_NUMBER", remarks: "Not the customer" }) }), { params: Promise.resolve({ id: loanId }) })) as Response;
 
 beforeEach(() => {
+  activeQuestions = [];
+  savedAnswers.length = 0;
   pendingCalls = [];
   createdData.length = 0;
   notified.length = 0;
@@ -68,4 +77,36 @@ test("a refused / dispute outcome notifies the agent's manager in the same trans
   notified.length = 0;
   expect((await save("L1")).status).toBe(201); // WRONG_NUMBER
   expect(notified).toHaveLength(0);
+});
+
+const post = async (body: unknown) => (await POST(new Request("http://x", { method: "POST", body: JSON.stringify(body) }), { params: Promise.resolve({ id: "L1" }) })) as Response;
+
+test("customer answers are saved with the question text copied from the database, not from the client", async () => {
+  activeQuestions = [{ id: "q1", text: "Why is your payment delayed?", category: "PAYMENT_DELAY_REASON" }];
+  const res = await post({ outcome: "NOT_INTERESTED", questionText: "forged", responses: [{ questionId: "q1", response: "Facing financial difficulties", remarks: "Sounded sure" }] });
+  expect(res.status).toBe(201);
+  expect(savedAnswers).toEqual([
+    { dispositionId: "d1", questionId: "q1", questionText: "Why is your payment delayed?", category: "PAYMENT_DELAY_REASON", response: "Facing financial difficulties", remarks: "Sounded sure", sortOrder: 0 },
+  ]);
+  expect((await res.json()).effects.answers).toBe(1);
+});
+
+test("an answer to a question that is no longer active is refused and nothing is saved", async () => {
+  const res = await post({ outcome: "NOT_INTERESTED", responses: [{ questionId: "gone", response: "x" }] });
+  expect(res.status).toBe(422);
+  expect(createdData).toHaveLength(0);
+  expect(savedAnswers).toHaveLength(0);
+});
+
+test("a part payment stores what is still unpaid and the follow-up date the agent chose", async () => {
+  const res = await post({ outcome: "PART_PAID", paidAmount: 4000, paymentDate: "2020-01-01", nextFollowUpOn: "2099-01-01" });
+  expect(res.status).toBe(201);
+  expect(createdData[0]).toMatchObject({ outcome: "PART_PAID", paidAmount: 4000, remainingAmount: 6000 });
+});
+
+test("no outcome detail and an interaction with no answers still saves", async () => {
+  const res = await post({ outcome: "NOT_REACHABLE", outcomeDetail: "BUSY" });
+  expect(res.status).toBe(201);
+  expect(createdData[0]).toMatchObject({ outcomeDetail: "BUSY" });
+  expect(savedAnswers).toHaveLength(0);
 });

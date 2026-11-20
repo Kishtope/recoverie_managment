@@ -44,6 +44,7 @@ model User {
   ownedAgency  Agency?       @relation("AgencyOwner")
   allocations  Allocation[]  @relation("AgentAllocations")
   dispositions Disposition[] @relation("AgentDispositions")
+  questions    CustomerQuestion[] @relation("QuestionCreator")
   calls        Call[]        @relation("AgentCalls")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -249,6 +250,7 @@ enum Outcome {
   NOT_REACHABLE
   WRONG_NUMBER
   REFUSED_DISPUTE
+  NOT_INTERESTED
 }
 
 // One recorded conversation outcome on a loan; never edited or deleted (a mistake is fixed by adding a new one).
@@ -266,10 +268,63 @@ model Disposition {
   paidAmount     Decimal?  @db.Decimal(12, 2) // agent-reported; the Phase 4 payments import becomes the source of truth
   nextFollowUpOn DateTime? @db.Date
   remarks        String?   @db.Text
+  // Outcome-specific details. Which ones are filled depends on the outcome (see buildDispositionSchema); all are null for older rows.
+  outcomeDetail   String?   @db.VarChar(20) // NO_ANSWER | BUSY (under NOT_REACHABLE), REFUSED | DISPUTE (under REFUSED_DISPUTE)
+  paymentDate     DateTime? @db.Date // PAID / PART_PAID: the day the customer says the money was paid
+  transactionRef  String?   @db.VarChar(100) // PAID: UPI / bank reference
+  remainingAmount Decimal?  @db.Decimal(12, 2) // PART_PAID: overdue amount still unpaid when this was saved
+  callbackTime    String?   @db.VarChar(5) // CALLBACK: "HH:mm" the customer asked to be called at (the date is nextFollowUpOn)
+  reason          String?   @db.VarChar(500) // CALLBACK reason, refusal reason or dispute description
+  category        String?   @db.VarChar(40) // DISPUTE category
+  responses       InteractionResponse[]
   createdAt      DateTime  @default(now())
 
   @@index([loanId, createdAt])
   @@index([agentId, createdAt])
+}
+
+enum QuestionCategory {
+  CUSTOMER_VERIFICATION
+  PAYMENT_RELATED
+  LOAN_RELATED
+  PAYMENT_DELAY_REASON
+  PROMISE_TO_PAY
+  FOLLOW_UP_RELATED
+  GENERAL_QUERIES
+}
+
+// A question an Admin wants agents to ask customers on collection calls. Agents only read active ones; they never create or change them.
+model CustomerQuestion {
+  id           String           @id @default(cuid())
+  text         String           @db.VarChar(500)
+  category     QuestionCategory
+  displayOrder Int              @default(0) // lower first, within the category
+  active       Boolean          @default(true)
+  createdById  String
+  createdBy    User             @relation("QuestionCreator", fields: [createdById], references: [id])
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([active, category, displayOrder])
+  @@index([category])
+}
+
+// One customer answer saved with an interaction (Disposition). It keeps its own copy of the question text and category, and holds the
+// question id as a plain string (no foreign key) so editing, deactivating or deleting a question never changes or removes saved history.
+model InteractionResponse {
+  id            String           @id @default(cuid())
+  dispositionId String
+  disposition   Disposition      @relation(fields: [dispositionId], references: [id])
+  questionId    String? // the question this answered; may no longer exist
+  questionText  String           @db.VarChar(500) // the question as the agent saw it
+  category      QuestionCategory
+  response      String           @db.Text
+  remarks       String?          @db.VarChar(500)
+  sortOrder     Int              @default(0)
+  createdAt     DateTime         @default(now())
+
+  @@index([dispositionId])
+  @@index([questionId])
 }
 
 enum CallProvider {

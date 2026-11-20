@@ -5,15 +5,16 @@ import { getErrorMessage } from "@/lib/get-error-message";
 import { addDisposition } from "../api";
 
 // Describes what a saved outcome did to the case, so the agent sees the automatic follow-up rules working.
-const describeEffects = (e: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean; callLinked: boolean }) => {
+const describeEffects = (e: { nextFollowUpOn: string | null; fieldVisitFlag: boolean; escalated: boolean; callLinked: boolean; answers: number }) => {
   const parts: string[] = [];
+  if (e.answers) parts.push(`${e.answers} customer ${e.answers === 1 ? "answer" : "answers"} saved`);
   if (e.nextFollowUpOn) parts.push(`Follow-up set for ${format(parse(e.nextFollowUpOn, "yyyy-MM-dd", new Date()), "dd MMM")}`);
   if (e.escalated) parts.push("Escalated to manager");
   if (e.fieldVisitFlag) parts.push("Marked for field visit");
   return parts.join(" · ") || undefined;
 };
 
-// Saves an outcome, then refreshes the case, the lists and the dashboard that read from it.
+// Saves an interaction (outcome + the customer's answers), then refreshes the case, the lists and the dashboard that read from it.
 export const useAddDisposition = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -26,10 +27,10 @@ export const useAddDisposition = () => {
       // The outcome may have cleared a call that was waiting for one (banner, call list, case page).
       queryClient.invalidateQueries({ queryKey: ["get-pending-call"] });
       queryClient.invalidateQueries({ queryKey: ["get-calls"] });
-      toast.add({ title: "Outcome saved", description: describeEffects(result.effects), type: "success" });
+      toast.add({ title: "Interaction saved", description: describeEffects(result.effects), type: "success" });
     },
     onError: (error) => {
-      toast.add({ title: "Couldn't save outcome", description: getErrorMessage(error, "Please try again."), type: "error" });
+      toast.add({ title: "Couldn't save interaction", description: getErrorMessage(error, "Please try again."), type: "error" });
     },
   });
 };

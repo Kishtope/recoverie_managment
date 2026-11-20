@@ -1,0 +1,26 @@
+Agreement No,Customer Name,Mobile,Alt Mobile,Address,PIN,Area,Company,Branch,Disbursed On,EMI Amount,Pending EMIs,DPD,Overdue Amount,Status,Assignment Type,Retailer Code
+RTS-0001,Aarav Sharma,9876543201,,Main Road Ward 2,481001,Balaghat,AF,Balaghat,15-03-2024,3100,6,33,9300,Active,Retailer,RT-001
+RTS-0002,Vivaan Gupta,9876543202,,Main Road Ward 3,481001,Mandla,BLD,Mandla,15-03-2024,3200,6,36,12800,Active,Retailer,RT-001
+RTS-0003,Aditya Verma,9876543203,,Main Road Ward 4,481001,Balaghat,AF,Balaghat,15-03-2024,3300,6,39,16500,Active,Retailer,RT-001
+RTS-0004,Vihaan Mishra,9876543204,,Main Road Ward 5,481001,Mandla,BLD,Mandla,15-03-2024,3400,6,42,6800,Active,Retailer,RT-001
+RTS-0005,Arjun Yadav,9876543205,,Main Road Ward 6,481001,Balaghat,AF,Balaghat,15-03-2024,3500,6,45,10500,Active,Retailer,RT-001
+RTS-0006,Sai Patel,9876543206,,Main Road Ward 7,481001,Mandla,BLD,Mandla,15-03-2024,3600,6,48,14400,Active,Retailer,RT-001
+RTS-0007,Reyansh Singh,9876543207,,Main Road Ward 8,481001,Balaghat,AF,Balaghat,15-03-2024,3700,6,51,18500,Active,Retailer,RT-001
+RTS-0008,Krishna Dubey,9876543208,,Main Road Ward 9,481001,Mandla,BLD,Mandla,15-03-2024,3800,6,54,7600,Active,Retailer,RT-001
+RTS-0009,Ishaan Tiwari,9876543209,,Main Road Ward 1,481001,Balaghat,AF,Balaghat,15-03-2024,3900,6,57,11700,Active,Retailer,RT-001
+RTS-0010,Rohan Jain,9876543210,,Main Road Ward 2,481001,Mandla,BLD,Mandla,15-03-2024,4000,6,60,16000,Active,Retailer,RT-001
+RTS-0011,Ananya Pandey,9876543211,,Main Road Ward 3,481001,Balaghat,AF,Balaghat,15-03-2024,4100,6,63,20500,Active,Retailer,RT-001
+RTS-0012,Diya Soni,9876543212,,Main Road Ward 4,481001,Mandla,BLD,Mandla,15-03-2024,4200,6,66,8400,Active,Retailer,RT-001
+RTS-0013,Kavya Rathore,9876543213,,Main Road Ward 5,481001,Balaghat,AF,Balaghat,15-03-2024,4300,6,69,12900,Active,Retailer,RT-001
+RTS-0014,Meera Chouhan,9876543214,,Main Road Ward 6,481001,Mandla,BLD,Mandla,15-03-2024,4400,6,72,17600,Active,Retailer,RT-001
+RTS-0015,Pooja Thakur,9876543215,,Main Road Ward 7,481001,Balaghat,AF,Balaghat,15-03-2024,4500,6,75,22500,Active,Retailer,RT-001
+RTS-0016,Neha Rajput,9876543216,,Main Road Ward 8,481001,Mandla,BLD,Mandla,15-03-2024,4600,6,78,9200,Active,Retailer,RT-001
+RTS-0017,Riya Kushwaha,9876543217,,Main Road Ward 9,481001,Balaghat,AF,Balaghat,15-03-2024,4700,6,81,14100,Active,Retailer,RT-001
+RTS-0018,Simran Baghel,9876543218,,Main Road Ward 1,481001,Mandla,BLD,Mandla,15-03-2024,4800,6,84,19200,Active,Retailer,RT-001
+RTS-0019,Anjali Dwivedi,9876543219,,Main Road Ward 2,481001,Balaghat,AF,Balaghat,15-03-2024,4900,6,87,24500,Active,Retailer,RT-001
+RTS-0020,Tanvi Patil,9876543220,,Main Road Ward 3,481001,Mandla,BLD,Mandla,15-03-2024,5000,6,90,10000,Active,Retailer,RT-001
+RTS-0021,Manish Sahu,9876543221,,Main Road Ward 4,481001,Balaghat,AF,Balaghat,15-03-2024,5100,6,93,15300,Active,Retailer,RT-001
+RTS-0022,Suresh Nayak,9876543222,,Main Road Ward 5,481001,Mandla,BLD,Mandla,15-03-2024,5200,6,96,20800,Active,Retailer,RT-001
+RTS-0023,Deepak Kori,9876543223,,Main Road Ward 6,481001,Balaghat,AF,Balaghat,15-03-2024,5300,6,99,26500,Active,Retailer,RT-002
+RTS-0024,Rakesh Lodhi,9876543224,,Main Road Ward 7,481001,Mandla,BLD,Mandla,15-03-2024,5400,6,102,10800,Active,Retailer,RT-002
+RTS-0025,Vijay Meena,9876543225,,Main Road Ward 8,481001,Balaghat,AF,Balaghat,15-03-2024,5500,6,105,16500,Active,Retailer,RT-002

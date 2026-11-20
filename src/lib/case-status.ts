@@ -63,13 +63,18 @@ const moneyFollows = (history: HistoryItem[], idx: number, payments: { paidOn: s
   history.slice(0, idx).some((d) => d.outcome === "PAID" || d.outcome === "PART_PAID") ||
   (!!history[idx].day && payments.some((p) => p.paidOn >= (history[idx].day as string)));
 
+// The state of the promise at `idx` in a newest-first history: kept once money follows it, broken once its date passed unpaid, else pending.
+// A promise is never "kept" just because it was made; only a recorded payment (or a paid outcome after it) keeps it.
+export const ptpStatusAt = (history: HistoryItem[], idx: number, today: string, payments: { paidOn: string }[] = []): PtpStatus => {
+  if (moneyFollows(history, idx, payments)) return "KEPT";
+  const date = history[idx].ptpDate;
+  return date && date < today ? "BROKEN" : "PENDING";
+};
+
 // Newest-first list of outcomes in, the state of the most recent promise out (null when the case never had one).
 export const derivePtpStatus = (dispositions: HistoryItem[], today: string, payments: { paidOn: string }[] = []): PtpStatus | null => {
   const idx = dispositions.findIndex((d) => d.outcome === "PTP");
-  if (idx === -1) return null;
-  if (moneyFollows(dispositions, idx, payments)) return "KEPT";
-  const date = dispositions[idx].ptpDate;
-  return date && date < today ? "BROKEN" : "PENDING";
+  return idx === -1 ? null : ptpStatusAt(dispositions, idx, today, payments);
 };
 
 export const RISK_TAGS = ["GOOD", "IRREGULAR", "CHRONIC", "DISPUTED"] as const;

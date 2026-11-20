@@ -32,11 +32,11 @@ export const planDispositionEffects = (
   now: Date,
   limit: number = NOT_REACHABLE_LIMIT,
 ): LoanFollowUpUpdate => {
-  // A PTP always follows up on the promised day; PAID / WRONG_NUMBER / REFUSED_DISPUTE end the follow-up.
+  // A PTP always follows up on the promised day; PAID / WRONG_NUMBER / REFUSED_DISPUTE / NOT_INTERESTED end the follow-up.
   const nextFollowUpOn =
     input.outcome === "PTP"
       ? (input.ptpDate ?? null)
-      : input.outcome === "PAID" || input.outcome === "WRONG_NUMBER" || input.outcome === "REFUSED_DISPUTE"
+      : input.outcome === "PAID" || input.outcome === "WRONG_NUMBER" || input.outcome === "REFUSED_DISPUTE" || input.outcome === "NOT_INTERESTED"
         ? null
         : (input.nextFollowUpOn ?? null);
 
@@ -49,4 +49,26 @@ export const planDispositionEffects = (
   const escalatedAt = paid ? null : input.outcome === "REFUSED_DISPUTE" ? now : current.escalatedAt;
 
   return { lastOutcome: input.outcome, lastContactedAt: now, nextFollowUpOn, notReachableCount, fieldVisitFlag, escalatedAt };
+};
+
+// The follow-up date the form suggests for an outcome choice (today as "yyyy-MM-dd"), or "" when the outcome has none to suggest:
+// a promise follows up on the promised day (set by the server), and paid / refused / dispute / wrong number / not interested end the follow-up.
+export const suggestFollowUp = (choice: string, today: string): string => {
+  const plusDays = (n: number) => {
+    const d = new Date(`${today}T00:00:00.000Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  switch (choice) {
+    case "NO_ANSWER":
+      return plusDays(1);
+    case "BUSY":
+      return today; // try again later the same day
+    case "CALLBACK":
+      return plusDays(1);
+    case "PART_PAID":
+      return plusDays(7); // chase the remaining amount in a week
+    default:
+      return "";
+  }
 };

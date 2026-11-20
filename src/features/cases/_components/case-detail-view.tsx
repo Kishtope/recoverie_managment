@@ -1,14 +1,14 @@
+
 "use client";
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { format, parse } from "date-fns";
-import { ArrowLeftIcon, CalendarClockIcon, MapPinIcon, PhoneIcon, PlusIcon, UserRoundIcon, UsersRoundIcon } from "lucide-react";
+import { ArrowLeftIcon, CalendarClockIcon, HistoryIcon, MessageSquareTextIcon, PlusIcon, UserRoundIcon, UsersRoundIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ErrorView } from "@/components/entity-components/error-view";
 import { LoadingView } from "@/components/entity-components/loading-view";
 import { CaseStatusBadge, PtpStatusBadge, RiskTagBadge } from "@/components/case-status-badge";
@@ -23,18 +23,12 @@ import { getErrorMessage } from "@/lib/get-error-message";
 import { getInitials } from "@/lib/get-initials";
 import type { CallItem } from "@/features/calls/types";
 import { useGetLoan } from "../hooks/use-get-loan";
+import { CaseDetailsCard } from "./case-details-card";
 import { ComplianceActions } from "./compliance-actions";
+import { CustomerQueryCard, type Answer, type Answers } from "./customer-query-card";
 import { DispositionHistory } from "./disposition-history";
-import { OutcomeFormDialog } from "./outcome-form-dialog";
+import { OutcomePanel } from "./outcome-panel";
 import { ReassignDialog } from "./reassign-dialog";
-
-// One labelled value in a details card; empty optional values show as "-".
-const Detail = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className="flex min-w-0 flex-col gap-0.5">
-    <dt className="kicker text-muted-foreground">{label}</dt>
-    <dd className="wrap-break-word text-sm">{children === null || children === undefined || children === "" ? "-" : children}</dd>
-  </div>
-);
 
 // One headline figure in the stat strip. `emphasis` makes the number larger (used for the overdue amount, the figure agents act on).
 const Stat = ({ label, value, emphasis }: { label: string; value: ReactNode; emphasis?: boolean }) => (
@@ -47,24 +41,57 @@ const Stat = ({ label, value, emphasis }: { label: string; value: ReactNode; emp
 /**
  * @component CaseDetailView
  * @description One case laid out for action: a profile header with flags, a strip of the four numbers that matter (overdue, DPD, EMI, pending EMIs),
- * the outcome timeline on the left, and next step, customer and loan details on the right (stacked on phones).
- * The "Call" and "Add outcome" buttons appear only for the agent the case is allocated to; on phones they are pinned to the bottom of the screen.
- * A live call shows as a panel under the header, and the outcome form opens by itself when the call is answered or missed.
+ * the customer questions and the interaction history on the left, and the outcome form, next step, customer and loan details on the right (stacked on phones).
+ * Only the agent the case is allocated to gets the Call button, the question boxes and the outcome form; on phones Call and "Record outcome"
+ * are pinned to the bottom of the screen. A live call shows as a panel under the header, and when it is answered or missed the page scrolls to the outcome form.
+ * The customer answers live here so they are saved together with the outcome as one interaction.
  * @param id The loan id from the route.
  */
 export const CaseDetailView = ({ id }: { id: string }) => {
   const { data: loan, isPending, isError, error } = useGetLoan(id);
-  const [formOpen, setFormOpen] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
-  // Bumped each time the form opens so it remounts fresh; a missed call opens it as "Not reachable".
-  const [seed, setSeed] = useState<{ key: number; outcome?: string }>({ key: 0 });
+  // Which tab of the workspace is showing: the questions to ask, or what has been recorded so far.
+  const [tab, setTab] = useState("questions");
+  // What the customer said to each question, by question id; saved with the outcome, then cleared.
+  const [answers, setAnswers] = useState<Answers>({});
+  // Bumped to remount the outcome form fresh (after a save, or when a call ends); a missed call selects "No answer".
+  const [seed, setSeed] = useState<{ key: number; choice?: string }>({ key: 0 });
+
+  // Updates part of one answer.
+  const changeAnswer = (questionId: string, patch: Partial<Answer>) =>
+    setAnswers((a) => ({ ...a, [questionId]: { ...(a[questionId] ?? { response: "", remarks: "" }), ...patch } }));
+
+  // Brings the outcome form into view (it sits below the fold on phones); a call that just ended also preselects its likely result.
   const openOutcomeForm = (call?: CallItem) => {
-    setSeed((s) => ({ key: s.key + 1, outcome: call?.status === "MISSED" ? "NOT_REACHABLE" : undefined }));
-    setFormOpen(true);
+    if (call) setSeed((s) => ({ key: s.key + 1, choice: call.status === "MISSED" ? "NO_ANSWER" : undefined }));
+    requestAnimationFrame(() => document.getElementById("outcome-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  // After a save: forget the answers, start the form over and open the history tab, where the new entry appears at the top.
+  const onSaved = () => {
+    setAnswers({});
+    setSeed((s) => ({ key: s.key + 1 }));
+    setTab("history");
+    requestAnimationFrame(() => document.getElementById("case-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
   if (isPending) return <LoadingView message="Loading case…" />;
   if (isError) return <ErrorView message={getErrorMessage(error, "Couldn't load this case.")} />;
+
+  // Every call and interaction on the case, newest first (shown under a tab for agents, on its own for everyone else).
+  const historyCard = (
+    <Card>
+      <CardHeader>
+        <CardTitle>Interaction history</CardTitle>
+        <CardDescription>
+          {loan.dispositions.length} recorded, newest first. Past entries are never changed.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <DispositionHistory items={loan.dispositions} calls={loan.calls} />
+      </CardContent>
+    </Card>
+  );
 
   return (
     <>
@@ -98,10 +125,6 @@ export const CaseDetailView = ({ id }: { id: string }) => {
             {loan.canAddOutcome && (
               <div className="hidden items-center gap-2 md:flex">
                 <CallButton loanId={loan.id} primaryMask={loan.customer.mobilePrimary} altMask={loan.customer.mobileAlt} canCall={loan.canCall} />
-                <Button variant="outline" size="lg" onClick={() => openOutcomeForm()}>
-                  <PlusIcon data-icon="inline-start" />
-                  Add outcome
-                </Button>
               </div>
             )}
           </div>
@@ -144,96 +167,79 @@ export const CaseDetailView = ({ id }: { id: string }) => {
           <Stat label="Pending EMIs" value={loan.pendingEmis ?? "-"} />
         </section>
 
+        <CaseDetailsCard loan={loan} />
+
         <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-          <Card>
-            <CardHeader>
-              <CardTitle>History</CardTitle>
-              <CardDescription>Every call and outcome on this case, newest first.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DispositionHistory items={loan.dispositions} calls={loan.calls} />
-            </CardContent>
-          </Card>
+          {/* Workspace: an agent switches between the questions to ask and what has been recorded; everyone else just sees the history. */}
+          <div id="case-workspace" className="flex min-w-0 scroll-mt-4 flex-col gap-4">
+            {loan.canAddOutcome ? (
+              <Tabs value={tab} onValueChange={(v) => setTab(String(v))} className="gap-4">
+                <TabsList variant="line" className="w-full justify-start border-b border-border">
+                  <TabsTrigger value="questions" className="flex-none">
+                    <MessageSquareTextIcon data-icon="inline-start" />
+                    Customer query
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="flex-none">
+                    <HistoryIcon data-icon="inline-start" />
+                    Interaction history
+                    <Badge variant="secondary">{loan.dispositions.length}</Badge>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="questions">
+                  <CustomerQueryCard answers={answers} onChange={changeAnswer} />
+                </TabsContent>
+                <TabsContent value="history">{historyCard}</TabsContent>
+              </Tabs>
+            ) : (
+              historyCard
+            )}
+          </div>
 
           <div className="flex min-w-0 flex-col gap-4">
+            {loan.canAddOutcome && (
+              <OutcomePanel
+                key={seed.key}
+                loanId={loan.id}
+                overdueAmount={loan.overdueAmount}
+                notReachableCount={loan.notReachableCount}
+                answers={answers}
+                onSaved={onSaved}
+                initialChoice={seed.choice}
+              />
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Next step</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <CalendarClockIcon className="size-4 shrink-0 text-muted-foreground" />
+              <CardContent className="flex flex-col divide-y divide-border">
+                <div className="flex items-center justify-between gap-3 pb-3">
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CalendarClockIcon className="size-4" aria-hidden />
+                    Follow-up
+                  </span>
                   <FollowUpBadge day={loan.nextFollowUpOn} />
                 </div>
-                <div className="flex items-center gap-3">
-                  <UserRoundIcon className="size-4 shrink-0 text-muted-foreground" />
-                  {loan.agent ? <span className="truncate">Allocated to {loan.agent.name}</span> : <Badge variant="outline">Unassigned</Badge>}
+                <div className="flex items-center justify-between gap-3 pt-3">
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <UserRoundIcon className="size-4" aria-hidden />
+                    Allocated to
+                  </span>
+                  {loan.agent ? (
+                    <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                      <Avatar size="sm">
+                        <AvatarFallback>{getInitials(loan.agent.name)}</AvatarFallback>
+                      </Avatar>
+                      <span className="truncate">{loan.agent.name}</span>
+                    </span>
+                  ) : (
+                    <Badge variant="outline">Unassigned</Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             <PaymentsCard loanId={loan.id} payments={loan.payments} canRecord={loan.canRecordPayment} />
             <SettlementsCard loanId={loan.id} settlements={loan.settlements} canRequest={loan.canRequestSettlement} overdue={loan.overdueAmount} />
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Customer</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <dl className="grid grid-cols-2 gap-4">
-                  <Detail label="Mobile">
-                    <span className="inline-flex items-center gap-1.5">
-                      <PhoneIcon className="size-3.5 text-muted-foreground" />
-                      {loan.customer.mobilePrimary}
-                    </span>
-                  </Detail>
-                  <Detail label="Alternate">{loan.customer.mobileAlt}</Detail>
-                  <Detail label="Area">{loan.customer.area}</Detail>
-                  <Detail label="PIN">{loan.customer.pin}</Detail>
-                  <div className="col-span-2">
-                    <Detail label="Address">
-                      <span className="inline-flex items-start gap-1.5">
-                        <MapPinIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                        {loan.customer.address}
-                      </span>
-                    </Detail>
-                  </div>
-                </dl>
-                {loan.customer.references.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="flex flex-col gap-2">
-                      <span className="kicker text-muted-foreground">References</span>
-                      <ul className="flex flex-col gap-1.5 text-sm">
-                        {loan.customer.references.map((r, i) => (
-                          <li key={i} className="flex flex-col">
-                            <span>
-                              {r.name || "-"}
-                              {r.relation ? <span className="text-muted-foreground"> ({r.relation})</span> : null}
-                            </span>
-                            <span className="text-xs text-muted-foreground">{r.mobile ?? "-"}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Loan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid grid-cols-2 gap-4">
-                  <Detail label="Status">{loan.status === "ACTIVE" ? "Active" : "Closed"}</Detail>
-                  <Detail label="Disbursed on">{loan.disbursedOn ? format(parse(loan.disbursedOn, "yyyy-MM-dd", new Date()), "dd MMM yyyy") : null}</Detail>
-                  <Detail label="Company">{loan.company}</Detail>
-                  <Detail label="Branch">{loan.branch}</Detail>
-                </dl>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
@@ -243,12 +249,11 @@ export const CaseDetailView = ({ id }: { id: string }) => {
           <CallButton className="flex-1" loanId={loan.id} primaryMask={loan.customer.mobilePrimary} altMask={loan.customer.mobileAlt} canCall={loan.canCall} />
           <Button variant="outline" size="lg" className="flex-1" onClick={() => openOutcomeForm()}>
             <PlusIcon data-icon="inline-start" />
-            Add outcome
+            Record outcome
           </Button>
         </div>
       )}
       {loan.canReassign && <ReassignDialog loanId={loan.id} currentAgentId={loan.agent?.id ?? null} open={reassignOpen} onOpenChange={setReassignOpen} />}
-      {loan.canAddOutcome && <OutcomeFormDialog key={seed.key} loanId={loan.id} open={formOpen} onOpenChange={setFormOpen} initialOutcome={seed.outcome} />}
     </>
   );
 };

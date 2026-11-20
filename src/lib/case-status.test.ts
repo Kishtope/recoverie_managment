@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { countBrokenPromises, deriveCaseStatus, derivePtpStatus, deriveRiskTag } from "./case-status";
+import { countBrokenPromises, deriveCaseStatus, derivePtpStatus, deriveRiskTag, ptpStatusAt } from "./case-status";
 
 const base = { loanStatus: "ACTIVE", allocated: true, lastOutcome: null, escalatedAt: null, fieldVisitFlag: false, notReachableCount: 0 } as const;
 
@@ -46,4 +46,16 @@ test("risk tag and broken-promise count", () => {
   expect(deriveRiskTag(45, false, 0)).toBe("IRREGULAR");
   expect(deriveRiskTag(10, false, 2)).toBe("CHRONIC");
   expect(deriveRiskTag(120, true, 0)).toBe("DISPUTED");
+});
+
+test("each promise in a history has its own state; making a promise never keeps it", () => {
+  // Newest first: a second promise (still ahead), then money, then an older promise that money followed.
+  const history = [
+    { outcome: "PTP" as const, ptpDate: "2026-11-25", day: "2026-11-20" },
+    { outcome: "PAID" as const, ptpDate: null, day: "2026-11-18" },
+    { outcome: "PTP" as const, ptpDate: "2026-11-19", day: "2026-11-15" },
+  ];
+  expect(ptpStatusAt(history, 0, "2026-11-21")).toBe("PENDING");
+  expect(ptpStatusAt(history, 2, "2026-11-21")).toBe("KEPT");
+  expect(ptpStatusAt([{ outcome: "PTP", ptpDate: "2026-11-19", day: "2026-11-15" }], 0, "2026-11-21")).toBe("BROKEN");
 });

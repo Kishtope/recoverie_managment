@@ -7,6 +7,7 @@ import { addDays, toDbDate, todayIst } from "../src/lib/dates";
 import { seedBatches } from "./seed-batches";
 import { seedFollowUps } from "./seed-follow-ups";
 import { seedRemap } from "./seed-remap";
+import { seedQuestions } from "./seed-questions";
 import { seedRetailers } from "./seed-retailers";
 import { planDispositionEffects, type DispositionInput } from "../src/lib/dispositions";
 
@@ -183,6 +184,7 @@ const main = async () => {
   await seedFollowUps();
   await seedRemap(PASSWORD);
   await seedRetailers();
+  await seedQuestions(admin.id);
   console.log("Seeded. Password for all users:", PASSWORD);
 };
 
