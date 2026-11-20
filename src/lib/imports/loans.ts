@@ -3,7 +3,8 @@ import type { Customer, Loan, Prisma } from "@/generated/prisma/client";
 import type { LoanRow } from "@/features/imports/schemas";
 import { applyInChunks, type ApplyResult, type Outcome } from "./shared";
 
-export type ValidLoanRow = { row: number; data: LoanRow };
+// `retailerId` is set for a Retailer row that passed the retailer checks; Caller rows leave it out.
+export type ValidLoanRow = { row: number; data: LoanRow; retailerId?: string };
 
 // Normalises a stored value for comparison (Decimal -> number, Date -> millis).
 const comparable = (v: unknown) => {
@@ -16,17 +17,30 @@ const comparable = (v: unknown) => {
 const changes = (current: Record<string, unknown>, patch: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(patch).filter(([k, v]) => v !== undefined && comparable(v) !== comparable(current[k])));
 
-// Splits a validated row into the customer part and the loan part.
-const split = ({ agreementNo, hubCustomerId, customerName, mobilePrimary, mobileAlt, address, pin, area, ...loanFields }: LoanRow) => ({
+// Customer fields that record who holds the customer: set only when the file names a retailer the customer does not already have, so a re-upload
+// keeps the original assigned-on date. The batch (import run) id makes the assignment traceable (BR-10).
+const retailerPatch = (storedRetailerId: string | null, retailerId: string | undefined, importId: string) =>
+  retailerId && retailerId !== storedRetailerId ? { retailerId, retailerAssignedOn: new Date(), retailerImportId: importId } : {};
+
+// Splits a validated row into the customer part and the loan part (the assignment columns are not stored on the loan).
+/* eslint-disable @typescript-eslint/no-unused-vars -- assignmentType / retailerCode are pulled out only so they stay out of loanFields */
+const split = ({ agreementNo, hubCustomerId, customerName, mobilePrimary, mobileAlt, address, pin, area, assignmentType: _type, retailerCode: _code, ...loanFields }: LoanRow) => ({
   agreementNo,
   customer: { hubCustomerId, name: customerName, mobilePrimary, mobileAlt, address, pin, area },
   loan: loanFields,
 });
 
+/* eslint-enable @typescript-eslint/no-unused-vars */
+
 // Updates a stored loan (and its customer) from a row; "unchanged" when nothing differs, with no write at all.
-const updateExisting = async (tx: Prisma.TransactionClient, stored: Loan & { customer: Customer }, data: LoanRow, importId: string): Promise<Outcome> => {
+const updateExisting = async (
+  tx: Prisma.TransactionClient,
+  stored: Loan & { customer: Customer },
+  { data, retailerId }: ValidLoanRow,
+  importId: string,
+): Promise<Outcome> => {
   const { customer, loan } = split(data);
-  const customerChanges = changes(stored.customer, customer);
+  const customerChanges = { ...changes(stored.customer, customer), ...retailerPatch(stored.customer.retailerId, retailerId, importId) };
   const loanChanges = changes(stored, loan);
   if (!Object.keys(customerChanges).length && !Object.keys(loanChanges).length) return "unchanged";
   if (Object.keys(customerChanges).length) await tx.customer.update({ where: { id: stored.customerId }, data: customerChanges });
@@ -35,17 +49,17 @@ const updateExisting = async (tx: Prisma.TransactionClient, stored: Loan & { cus
 };
 
 // Slow path for a new loan whose row carries a hub customer id: the customer may already exist (or appear earlier in the same chunk).
-const createWithHubCustomer = async (tx: Prisma.TransactionClient, data: LoanRow, importId: string): Promise<Outcome> => {
+const createWithHubCustomer = async (tx: Prisma.TransactionClient, { data, retailerId }: ValidLoanRow, importId: string): Promise<Outcome> => {
   const { agreementNo, customer, loan } = split(data);
   const known = await tx.customer.findUnique({ where: { hubCustomerId: customer.hubCustomerId! } });
   let customerId: string;
   if (known) {
     customerId = known.id;
     // The customer already carries this hub id, so only the other fields can differ.
-    const rest = changes(known, { ...customer, hubCustomerId: undefined });
+    const rest = { ...changes(known, { ...customer, hubCustomerId: undefined }), ...retailerPatch(known.retailerId, retailerId, importId) };
     if (Object.keys(rest).length) await tx.customer.update({ where: { id: known.id }, data: rest });
   } else {
-    customerId = (await tx.customer.create({ data: customer })).id;
+    customerId = (await tx.customer.create({ data: { ...customer, ...retailerPatch(null, retailerId, importId) } })).id;
   }
   await tx.loan.create({ data: { agreementNo, customerId, ...loan, lastImportId: importId } });
   return "created";
@@ -59,17 +73,18 @@ const applyLoanChunk = async (tx: Prisma.TransactionClient, items: ValidLoanRow[
 
   const outcomes: Outcome[] = new Array(items.length);
   const fresh: number[] = []; // indexes of new loans that can be bulk inserted
-  for (const [index, { data }] of items.entries()) {
+  for (const [index, item] of items.entries()) {
+    const { data } = item;
     const loan = byAgreement.get(data.agreementNo);
-    if (loan) outcomes[index] = await updateExisting(tx, loan, data, importId);
-    else if (data.hubCustomerId) outcomes[index] = await createWithHubCustomer(tx, data, importId);
+    if (loan) outcomes[index] = await updateExisting(tx, loan, item, importId);
+    else if (data.hubCustomerId) outcomes[index] = await createWithHubCustomer(tx, item, importId);
     else fresh.push(index);
   }
 
   if (fresh.length) {
     // Ids are made here (createMany does not return them on MySQL) so each loan can point at its new customer.
-    const rows = fresh.map((index) => ({ customerId: randomUUID(), ...split(items[index].data) }));
-    await tx.customer.createMany({ data: rows.map(({ customerId, customer }) => ({ id: customerId, ...customer })) });
+    const rows = fresh.map((index) => ({ customerId: randomUUID(), retailerId: items[index].retailerId, ...split(items[index].data) }));
+    await tx.customer.createMany({ data: rows.map(({ customerId, customer, retailerId }) => ({ id: customerId, ...customer, ...retailerPatch(null, retailerId, importId) })) });
     await tx.loan.createMany({ data: rows.map(({ customerId, agreementNo, loan }) => ({ agreementNo, customerId, ...loan, lastImportId: importId })) });
     fresh.forEach((index) => (outcomes[index] = "created"));
   }

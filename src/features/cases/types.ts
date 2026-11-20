@@ -28,6 +28,7 @@ export type LoanListItem = {
   lastPtpAmount: number | null; // promised amount of the most recent outcome, when that outcome was a PTP
   fieldVisitFlag: boolean;
   escalated: boolean;
+  retailer: { id: string; code: string; name: string } | null; // the customer's retailer; only sent to Admins
 };
 
 export type LoanListResponse = { items: LoanListItem[]; total: number; page: number; pageSize: number };
@@ -46,6 +47,7 @@ export type LoanListQuery = {
   followUp: string;
   outcome: string;
   flag: string;
+  retailerId?: string; // Admin only: a retailer id, or "none" = customers without a retailer
   tab?: string; // Follow-ups page tab: new | today | post | closed
   sort?: string; // "recent" = newest uploaded first; omitted = by follow-up date
   page: number;

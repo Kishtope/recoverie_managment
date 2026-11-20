@@ -1,8 +1,10 @@
 import type { ImportRun, ImportType, Prisma } from "@/generated/prisma/client";
 import { allocationRowSchema, describeIssue, loanRowSchema, paymentRowSchema } from "@/features/imports/schemas";
-import type { ImportRowError, ImportRunItem } from "@/features/imports/types";
+import type { ImportPreview, ImportRowError, ImportRunItem } from "@/features/imports/types";
+import type { RetailerImportSummary } from "@/features/retailers/types";
 import { logAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
+import { checkRetailerRows } from "@/lib/retailer-import";
 import { applyAllocations, type ValidAllocationRow } from "./allocations";
 import type { RawRow } from "./columns";
 import { applyLoans, type ValidLoanRow } from "./loans";
@@ -45,6 +47,30 @@ export const validate = <T extends { agreementNo: string }>(
   return { valid, errors };
 };
 
+// Validates a Loans file without writing anything: every row against its schema, then the retailer rules (known active code, at most 20 per retailer).
+// Rows that pass carry the retailer they were mapped to. Used by both the preview and the real import so the two always agree.
+export const prepareLoans = async (rows: RawRow[]) => {
+  const v = validate(rows, (values) => {
+    const r = loanRowSchema.safeParse(values);
+    return r.success ? { data: r.data } : { error: describeIssue(r.error) };
+  });
+  const retailers = await prisma.retailer.findMany({ select: { id: true, code: true, name: true, status: true } });
+  const check = checkRetailerRows(
+    v.valid.map(({ row, data }) => ({ row, agreementNo: data.agreementNo, assignmentType: data.assignmentType, retailerCode: data.retailerCode })),
+    retailers,
+  );
+  const rejected = new Set(check.errors.map((e) => e.row));
+  const valid: ValidLoanRow[] = v.valid.filter((r) => !rejected.has(r.row)).map((r) => ({ ...r, retailerId: check.retailerIds.get(r.row) }));
+  const errors = [...v.errors, ...check.errors].sort((a, b) => a.row - b.row);
+  return { valid, errors, summary: check.summary };
+};
+
+// The numbers an Admin reviews before confirming a Loans upload (nothing is saved). `errors` is cut to the first 100 rows.
+export const previewLoans = async (rows: RawRow[]): Promise<ImportPreview> => {
+  const { valid, errors, summary } = await prepareLoans(rows);
+  return { totalRows: rows.length, valid: valid.length, invalid: errors.length, retailers: summary, errors: errors.slice(0, 100) };
+};
+
 // Runs one import end to end: records an ImportRun, validates, writes, then closes the run with counts and every error.
 // Never throws for bad rows (they go in `errors`); a crash marks the run FAILED and rethrows.
 export const executeImport = async ({ type, fileName, userId, rows }: { type: ImportType; fileName: string; userId: string; rows: RawRow[] }) => {
@@ -52,13 +78,12 @@ export const executeImport = async ({ type, fileName, userId, rows }: { type: Im
   try {
     let checked: { errors: ImportRowError[] };
     let written: ApplyResult;
+    let retailerSummary: RetailerImportSummary | undefined;
     if (type === "LOANS") {
-      const v = validate(rows, (values) => {
-        const r = loanRowSchema.safeParse(values);
-        return r.success ? { data: r.data } : { error: describeIssue(r.error) };
-      });
-      checked = v;
-      written = await applyLoans(v.valid as ValidLoanRow[], run.id);
+      const prepared = await prepareLoans(rows);
+      checked = prepared;
+      retailerSummary = prepared.summary;
+      written = await applyLoans(prepared.valid, run.id);
     } else if (type === "PAYMENTS") {
       const v = validate(
         rows,
@@ -89,6 +114,7 @@ export const executeImport = async ({ type, fileName, userId, rows }: { type: Im
         unchanged: written.unchanged,
         failed: errors.length,
         errors: errors as unknown as Prisma.InputJsonValue,
+        ...(retailerSummary ? { retailerSummary: retailerSummary as unknown as Prisma.InputJsonValue } : {}),
         finishedAt: new Date(),
       },
     });
@@ -117,5 +143,6 @@ export const toRunItem = (run: ImportRun, createdBy: { id: string; name: string 
   failed: run.failed,
   startedAt: run.startedAt.toISOString(),
   finishedAt: run.finishedAt?.toISOString() ?? null,
+  retailers: (run.retailerSummary as RetailerImportSummary | null) ?? null,
   createdBy,
 });

@@ -9,7 +9,8 @@ import { prisma } from "@/lib/prisma";
 import type { LoanListItem } from "@/features/cases/types";
 
 // Lists loans the caller may see (by active allocation) with search, follow-up / outcome / flag / agent / company / branch filters and paging.
-// Default order: next follow-up first (no follow-up last), then higher DPD, then bigger overdue amount. Mobile numbers are masked.
+// Default order: next follow-up first (no follow-up last), then higher DPD, then bigger overdue amount. Mobile numbers are masked. Admins also get
+// each customer's retailer and can filter by it.
 export const GET = async (req: Request) => {
   const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
   if ("error" in auth) return auth.error;
@@ -21,6 +22,9 @@ export const GET = async (req: Request) => {
   const branch = sp.get("branch");
   const outcome = sp.get("outcome");
   const flag = sp.get("flag");
+  // Retailer filter and field are for Admins only (the retailer module is Admin only); "none" = customers without a retailer.
+  const isAdmin = auth.user.role === "ADMIN";
+  const retailerId = isAdmin ? sp.get("retailerId") : null;
   // "recent" = newest uploaded first (Customers page); the default order is by follow-up.
   const recent = sp.get("sort") === "recent";
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
@@ -43,6 +47,7 @@ export const GET = async (req: Request) => {
       agentId === "none" ? { allocations: { none: { active: true } } } : agentId ? { allocations: { some: { active: true, agentId } } } : {},
       company && (COMPANIES as readonly string[]).includes(company) ? { company: company as (typeof COMPANIES)[number] } : {},
       branch && (BRANCHES as readonly string[]).includes(branch) ? { branch } : {},
+      retailerId === "none" ? { customer: { retailerId: null } } : retailerId ? { customer: { retailerId } } : {},
       followUpWhere(sp.get("followUp"), todayIst()),
       // The agent Follow-ups page tabs (new / today / post / closed).
       followUpTabWhere(sp.get("tab"), todayIst()),
@@ -68,7 +73,7 @@ export const GET = async (req: Request) => {
         nextFollowUpOn: true,
         fieldVisitFlag: true,
         escalatedAt: true,
-        customer: { select: { name: true, mobilePrimary: true, mobileAlt: true, area: true } },
+        customer: { select: { name: true, mobilePrimary: true, mobileAlt: true, area: true, retailer: { select: { id: true, code: true, name: true } } } },
         allocations: { where: { active: true }, take: 1, select: { assignedOn: true, agent: { select: { id: true, name: true } } } },
         dispositions: { orderBy: { createdAt: "desc" }, take: 1, select: { ptpAmount: true } },
       },
@@ -100,6 +105,7 @@ export const GET = async (req: Request) => {
     lastPtpAmount: l.lastOutcome === "PTP" ? (l.dispositions[0]?.ptpAmount?.toNumber() ?? null) : null,
     fieldVisitFlag: l.fieldVisitFlag,
     escalated: l.escalatedAt !== null,
+    retailer: isAdmin ? l.customer.retailer : null,
   }));
   return NextResponse.json({ items, total, page, pageSize });
 };

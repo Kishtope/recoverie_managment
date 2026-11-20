@@ -19,6 +19,8 @@ const LOAN_COLUMNS = {
   dpd: ["dpd", "dayspastdue"],
   overdueAmount: ["overdueamount", "overdue", "overduerupees", "totaloverdue"],
   status: ["status", "loanstatus"],
+  assignmentType: ["assignmenttype", "assigntype", "assignedtype", "customertype"],
+  retailerCode: ["retailercode", "retailerid", "retailer"],
 } as const;
 
 const ALLOCATION_COLUMNS = {
@@ -39,7 +41,7 @@ const PAYMENT_COLUMNS = {
 
 // Fields a file must have a column for; the rest are optional and a blank cell leaves the stored value untouched.
 const REQUIRED: Record<ImportType, string[]> = {
-  LOANS: ["agreementNo", "customerName", "company", "branch"],
+  LOANS: ["agreementNo", "customerName", "company", "branch", "assignmentType"],
   ALLOCATIONS: ["agreementNo", "agentEmail"],
   PAYMENTS: ["agreementNo", "amount", "paidOn"],
 };
@@ -80,6 +82,7 @@ const REQUIRED_LABELS: Record<string, string> = {
   customerName: "Customer Name",
   company: "Company",
   branch: "Branch",
+  assignmentType: "Assignment Type",
   agentEmail: "Agent Email",
   amount: "Amount",
   paidOn: "Paid On",

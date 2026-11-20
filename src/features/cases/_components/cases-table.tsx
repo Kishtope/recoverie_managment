@@ -22,9 +22,9 @@ const getInitials = (name: string) =>
 // Empty optional values show as "-".
 const orDash = (value?: string | number | null) => (value === null || value === undefined || value === "" ? "-" : value);
 
-// Columns of the Cases table. `showAgent` is off for agents (every case is their own). The customer cell holds a real link so keyboard
+// Columns of the Cases table. `showAgent` is off for agents (every case is their own); `showRetailer` is on for Admins only. The customer cell holds a real link so keyboard
 // users can open the case; rows themselves are not clickable (the View details button does that).
-export const getCasesColumns = ({ showAgent }: { showAgent: boolean }): DataTableColumn<LoanListItem>[] => [
+export const getCasesColumns = ({ showAgent, showRetailer = false }: { showAgent: boolean; showRetailer?: boolean }): DataTableColumn<LoanListItem>[] => [
   {
     key: "customer",
     header: "Customer",
@@ -67,6 +67,9 @@ export const getCasesColumns = ({ showAgent }: { showAgent: boolean }): DataTabl
         { key: "agent", header: "Agent", cell: (l: LoanListItem) => (l.agent ? l.agent.name : <Badge variant="outline">Unassigned</Badge>) },
         { key: "assignedOn", header: "Assigned on", cell: (l: LoanListItem) => (l.assignedOn ? format(new Date(l.assignedOn), "dd MMM yyyy") : "-") },
       ]
+    : []),
+  ...(showRetailer
+    ? [{ key: "retailer", header: "Retailer", cell: (l: LoanListItem) => (l.retailer ? l.retailer.name : <Badge variant="outline">No retailer</Badge>) }]
     : []),
   {
     key: "actions",

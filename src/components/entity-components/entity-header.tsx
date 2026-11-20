@@ -49,7 +49,7 @@ export const EntityHeader = ({
 }: Props) => {
     return (
         <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-x-4'>
-            <div className='flex min-w-0 flex-col'>
+            <div className='flex min-w-0 flex-1 flex-col'>
                 <h1 className='text-lg md:text-xl font-semibold'>{title}</h1>
                 {description && (
                     <p className=' text-xs md:text-sm text-muted-foreground'>
@@ -57,7 +57,7 @@ export const EntityHeader = ({
                     </p>
                 )}
             </div>
-            <div className='flex flex-wrap items-center gap-2'>
+            <div className='flex flex-wrap items-center gap-2 sm:shrink-0 sm:flex-nowrap sm:justify-end'>
             {actions}
             {onNew && !newButtonHref && (
                 <Button

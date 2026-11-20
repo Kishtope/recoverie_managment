@@ -71,6 +71,20 @@ export const loanRowSchema = z.object({
   dpd: parsed(parseCount, "DPD must be a whole number"),
   overdueAmount: parsed(parseAmount, "Invalid overdue amount"),
   status: parsed((v) => (matchList(["ACTIVE", "CLOSED"])(v) as "ACTIVE" | "CLOSED" | null), "Status must be Active or Closed"),
+  // Caller or Retailer decides which workflow the customer follows; a Retailer row also needs a retailer code (checked against the retailers later).
+  assignmentType: z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      if (!v) {
+        ctx.issues.push({ code: "custom", message: "Assignment type is blank (Caller or Retailer)", input: v });
+        return z.NEVER;
+      }
+      const hit = matchList(["CALLER", "RETAILER"])(v) as "CALLER" | "RETAILER" | null;
+      if (!hit) ctx.issues.push({ code: "custom", message: `Assignment type "${v}" must be Caller or Retailer`, input: v });
+      return hit ?? z.NEVER;
+    }),
+  retailerCode: text,
 });
 export type LoanRow = z.infer<typeof loanRowSchema>;
 

@@ -14,6 +14,7 @@ import { ErrorView } from "@/components/entity-components/error-view";
 import { LoadingView } from "@/components/entity-components/loading-view";
 import { FilterSheet, type FilterField } from "@/components/filter-sheet";
 import { useMe } from "@/features/auth/hooks/use-me";
+import { useGetRetailers } from "@/features/retailers/hooks/use-get-retailers";
 import { useTeamOptions } from "@/features/team/hooks/use-team-options";
 import { BRANCHES, COMPANIES, OUTCOMES, OUTCOME_LABELS, isWorkerRole } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/get-error-message";
@@ -70,11 +71,18 @@ export const CasesView = () => {
     followUp: params.filters.followUp,
     outcome: params.filters.outcome,
     flag: params.filters.flag,
+    retailerId: params.filters.retailer,
     page: params.page,
     pageSize: PAGE_SIZE,
   });
   // Only Admins can list every agent for the dropdown (the options endpoint is Admin only).
   const { data: options } = useTeamOptions(isAdmin);
+  // Admins can also filter by retailer; the dropdown lists the first 100 (the API's page limit).
+  const { data: retailers } = useGetRetailers({ status: "all", q: "", page: 1, pageSize: 100 }, isAdmin);
+  const retailerOptions = useMemo(
+    () => [{ value: "all", label: "All retailers" }, { value: "none", label: "No retailer" }, ...(retailers?.items ?? []).map((r) => ({ value: r.id, label: r.name }))],
+    [retailers],
+  );
 
   // Agent dropdown: everyone who can hold cases, plus "Unassigned" (loans with no active allocation).
   const agentOptions = useMemo(
@@ -85,7 +93,7 @@ export const CasesView = () => {
     ],
     [options],
   );
-  const columns = useMemo(() => getCasesColumns({ showAgent: !isAgent }), [isAgent]);
+  const columns = useMemo(() => getCasesColumns({ showAgent: !isAgent, showRetailer: isAdmin }), [isAgent, isAdmin]);
 
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
   const from = data && data.total ? (data.page - 1) * data.pageSize + 1 : 0;
@@ -95,6 +103,7 @@ export const CasesView = () => {
   const fields: FilterField[] = [
     { key: "outcome", label: "Last outcome", options: OUTCOME_OPTIONS, value: params.filters.outcome },
     ...(isAdmin ? [{ key: "agent", label: "Agent", options: agentOptions, value: params.filters.agent }] : []),
+    ...(isAdmin ? [{ key: "retailer", label: "Retailer", options: retailerOptions, value: params.filters.retailer }] : []),
     ...(canSeeFlags ? [{ key: "flag", label: "Flag", options: FLAG_OPTIONS, value: params.filters.flag }] : []),
     ...(!isAgent ? [{ key: "company", label: "Company", options: COMPANY_OPTIONS, value: params.filters.company }, { key: "branch", label: "Branch", options: BRANCH_OPTIONS, value: params.filters.branch }] : []),
   ];

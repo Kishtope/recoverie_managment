@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { columnLabel, mapColumns } from "@/lib/imports/columns";
 import { ImportFileError, MAX_FILE_BYTES, parseSheet } from "@/lib/imports/parse";
-import { executeImport, hasRunningImport, toRunItem } from "@/lib/imports/run";
+import { executeImport, hasRunningImport, previewLoans, toRunItem } from "@/lib/imports/run";
 import { runAutoAllocation } from "@/lib/allocation-run";
 import { importAutoAllocateSchema, importTypeSchema } from "@/features/imports/schemas";
 import type { ImportUploadResult } from "@/features/imports/types";
@@ -36,7 +36,9 @@ export const GET = async (req: Request) => {
 
 // Imports an uploaded .xlsx/.csv (multipart: `type` + `file`, and for Customers files an optional `autoAllocate` JSON {rule, agentIds}). Returns the run
 // summary; bad rows are in the run's errors, not a failure. With `autoAllocate`, the cases from this file that nobody holds yet are then split
-// between the chosen people; if that step fails the import still stands and the reason comes back as `allocationError`.
+// between the chosen people; if that step fails the import still stands and the reason comes back as `allocationError`. A Loans file carries an
+// Assignment Type per row (Caller / Retailer) and a Retailer Code for Retailer rows; the split is on the run. With `preview=true` (Loans only)
+// nothing is saved and the counts, retailer-wise split and first errors come back as `{ preview }` for the Admin to confirm.
 export const POST = async (req: Request) => {
   const auth = await requireUser(["ADMIN"]);
   if ("error" in auth) return auth.error;
@@ -78,6 +80,11 @@ export const POST = async (req: Request) => {
     throw e;
   }
 
+  if (form.get("preview") === "true") {
+    if (type.data !== "LOANS") return NextResponse.json({ error: "Only a Customers file can be checked before uploading" }, { status: 400 });
+    return NextResponse.json({ preview: await previewLoans(rows) });
+  }
+
   if (await hasRunningImport()) return NextResponse.json({ error: "Another import is still running. Try again in a minute." }, { status: 409 });
 
   const run = await executeImport({ type: type.data, fileName: file.name, userId: auth.user.id, rows });
@@ -85,7 +92,7 @@ export const POST = async (req: Request) => {
   let allocationError: string | null = null;
   if (autoAllocate && type.data === "LOANS" && run.status === "DONE") {
     try {
-      const outcome = await runAutoAllocation({ user: auth.user, ...autoAllocate, dryRun: false, agreementNos: rows.map((r) => r.values.agreementNo?.trim()).filter((n): n is string => !!n) });
+      const outcome = await runAutoAllocation({ user: auth.user, ...autoAllocate, dryRun: false, agreementNos: rows.filter((r) => r.values.assignmentType?.trim().toLowerCase() === "caller").map((r) => r.values.agreementNo?.trim()).filter((n): n is string => !!n) });
       if (outcome.ok) allocation = outcome.result;
       else allocationError = outcome.error;
     } catch {

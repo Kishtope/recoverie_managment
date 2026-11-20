@@ -90,6 +90,14 @@ The full step-by-step is in [`docs/runbook.md`](docs/runbook.md) (environment va
 - **Health.** `GET /api/health` answers `ok` (200) or `degraded` (503) depending on whether the database can be reached; no login needed, no details exposed.
 - **Install app.** Signed-in users see "Install app" in the sidebar when the browser can install it (on iPhone it explains Share, then Add to Home Screen). There is no offline mode.
 
+## Retailers (Phase 6)
+
+- **Retailers page (Admin).** `/retailers` has an Overview tab (retailers, customers held, customers without a retailer, outstanding, collected for this month / last month / all time, and a per-retailer table) and a Retailers tab to add, edit, activate and deactivate retailers. A retailer's page lists its customers with the caller who holds each loan. Retailers are never deleted; an inactive one keeps its customers but gets no new ones.
+- **Upload mapping.** The customers file has an **Assignment Type** column (Caller or Retailer) and, for Retailer rows, a **Retailer Code**. The code in the file decides the retailer; nothing is ever balanced or moved automatically. A retailer takes at most **20 customers from one file**: the first 20 rows in file order are saved and the rest are rejected with a capacity error. Unknown, blank or inactive codes are rejected per row. Caller rows follow the normal caller workflow (auto-allocate only ever uses Caller rows).
+- **Check, then upload.** The upload dialog has one button, **Check and upload**. It checks the file first (nothing is saved yet). If every row is valid it uploads right away; if some rows are invalid it stops and shows valid and invalid rows, the caller / retailer split, customers per retailer (out of 20) and the first errors, and the same button then uploads the valid rows. Each retailer customer records the upload (import run) that gave it to the retailer.
+- **Retailer and caller are separate.** Changing one never changes the other. Admins can filter the Cases page by retailer and see it as a column.
+- **Dev data.** `bun run db:seed` adds three retailers (RT-001, RT-002 active, RT-003 inactive).
+
 ## Scripts
 
 - `bun run lint`, `bunx tsc --noEmit`, `bun test` (runs with `--isolate`: each test file gets its own module mocks)

@@ -7,6 +7,7 @@ import { addDays, toDbDate, todayIst } from "../src/lib/dates";
 import { seedBatches } from "./seed-batches";
 import { seedFollowUps } from "./seed-follow-ups";
 import { seedRemap } from "./seed-remap";
+import { seedRetailers } from "./seed-retailers";
 import { planDispositionEffects, type DispositionInput } from "../src/lib/dispositions";
 
 // Dev/test data: one user of each role, one agency, branches spread out. Safe to re-run (upserts by email).
@@ -181,6 +182,7 @@ const main = async () => {
   await seedBatches();
   await seedFollowUps();
   await seedRemap(PASSWORD);
+  await seedRetailers();
   console.log("Seeded. Password for all users:", PASSWORD);
 };
 

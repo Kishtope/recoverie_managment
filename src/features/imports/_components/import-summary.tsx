@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { RetailerSplitSummary } from "@/features/retailers/_components/retailer-split-summary";
 import { cn } from "@/lib/utils";
 import type { ImportRunItem } from "../types";
 
@@ -12,7 +13,8 @@ const Stat = ({ label, value, className }: { label: string; value: number; class
 
 /**
  * @component ImportSummary
- * @description Totals of one import run: rows read, new, updated, unchanged and rejected, with a link to the rejected rows.
+ * @description Totals of one import run: rows read, new, updated, unchanged and rejected, with a link to the rejected rows. A Loans import
+ * also shows the Caller / Retailer split and how many customers each retailer received.
  * @param onOpenErrors Opens the error list; shown only when some rows failed.
  */
 export const ImportSummary = ({ run, onOpenErrors, className }: { run: ImportRunItem; onOpenErrors: () => void; className?: string }) => (
@@ -27,6 +29,12 @@ export const ImportSummary = ({ run, onOpenErrors, className }: { run: ImportRun
     {run.failed > 0 && (
       <div>
         <Button size="sm" variant="outline" onClick={onOpenErrors}>View errors</Button>
+      </div>
+    )}
+    {run.retailers && (
+      <div className="flex flex-col gap-2">
+        <h3 className="text-base">Callers and retailers</h3>
+        <RetailerSplitSummary summary={run.retailers} />
       </div>
     )}
   </div>
