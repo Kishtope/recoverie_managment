@@ -24,6 +24,7 @@ const SECTION_TITLES: Record<string, string> = {
   scorecards: "Performance",
   recovery: "Recovery",
   settings: "Settings",
+  team: "Team",
 };
 
 type Crumb = { label: string; href?: string };

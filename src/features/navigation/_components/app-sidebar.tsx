@@ -35,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { title: "Performance", href: "/performance", icon: TrophyIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
   { title: "Imports", href: "/imports", icon: UploadIcon, roles: ["ADMIN"] },
   { title: "Retailers", href: "/retailers", icon: StoreIcon, roles: ["ADMIN"] },
+  { title: "Team", href: "/team", icon: UsersIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
   { title: "Questions", href: "/questions", icon: MessageSquareTextIcon, roles: ["ADMIN"] },
   // TODO: Remove the cut-over page once we have a team management feature. For now, the cut-over page is just a placeholder and not linked anywhere.
   // { title: "Cut-over", href: "/cutover", icon: RocketIcon, roles: ["ADMIN"] },

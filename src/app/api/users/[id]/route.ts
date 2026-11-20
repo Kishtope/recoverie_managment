@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { hashPassword } from "@/lib/password";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
+import { reassignOpenCases } from "@/lib/reassign-open-cases";
+import { updateUserSchema } from "@/features/team/schemas";
+import { userSelect } from "../select";
+
+// Admin edits a user: details, role, access, reports-to, password, enable/disable. Role changes and disabling are audited.
+export const PATCH = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
+  const auth = await requireUser(["ADMIN"]);
+  if ("error" in auth) return auth.error;
+  const { id } = await ctx.params;
+
+  const parsed = updateUserSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  const { password, access, mobile, agencyId, reportsToId, ...rest } = parsed.data;
+
+  const existing = await prisma.user.findUnique({ where: { id }, select: { role: true, status: true } });
+  if (!existing) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (id === auth.user.id && (rest.status === "DISABLED" || rest.role !== "ADMIN")) {
+    return NextResponse.json({ error: "You cannot disable yourself or remove your own admin role" }, { status: 400 });
+  }
+  if (reportsToId === id) return NextResponse.json({ error: "A user cannot report to themselves" }, { status: 400 });
+
+  try {
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        ...rest,
+        mobile: mobile || null,
+        agencyId: agencyId || null,
+        reportsToId: reportsToId || null,
+        ...(password ? { passwordHash: await hashPassword(password) } : {}),
+        access: { deleteMany: {}, create: access },
+      },
+      select: userSelect,
+    });
+    if (existing.role !== rest.role) await logAudit(auth.user.id, "user.role_change", "User", id, { from: existing.role, to: rest.role });
+    if (existing.status !== rest.status) {
+      await logAudit(auth.user.id, rest.status === "DISABLED" ? "user.disable" : "user.enable", "User", id);
+      // Deactivating hands the user's open cases to colleagues; their call and outcome history stays with them.
+      if (rest.status === "DISABLED") {
+        const reassigned = await reassignOpenCases(id, auth.user.id);
+        await logAudit(auth.user.id, "user.reassign_open_cases", "User", id, reassigned);
+        await logAudit(auth.user.id, "user.update", "User", id);
+        return NextResponse.json({ user, reassigned });
+      }
+    }
+    await logAudit(auth.user.id, "user.update", "User", id);
+    return NextResponse.json({ user });
+  } catch (e) {
+    if ((e as { code?: string }).code === "P2002") {
+      return NextResponse.json({ error: "A user with this email or mobile already exists" }, { status: 409 });
+    }
+    throw e;
+  }
+};
