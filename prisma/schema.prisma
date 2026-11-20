@@ -68,7 +68,6 @@ model Agency {
   commissionPct Decimal?     @db.Decimal(5, 2)
   members       User[]       @relation("AgencyMembers")
   allocations   Allocation[]
-  batches       Batch[]
 }
 
 model AuditLog {
@@ -98,49 +97,6 @@ enum ImportStatus {
   RUNNING
   DONE
   FAILED
-}
-
-// A batch is a group of cases handed to a team together. CALL batches are worked by phone, FR (field recovery) batches by visits.
-enum BatchType {
-  CALL
-  FR
-}
-
-// Draft (being prepared) -> Open (ready to hand out) -> In progress (assigned, being worked) -> Closed.
-enum BatchStatus {
-  DRAFT
-  OPEN
-  IN_PROGRESS
-  CLOSED
-}
-
-model Batch {
-  id          String      @id @default(cuid())
-  name        String      @unique
-  type        BatchType
-  status      BatchStatus @default(DRAFT)
-  agencyId    String? // who works it once in progress; null = in-house
-  agency      Agency?     @relation(fields: [agencyId], references: [id])
-  assignedOn  DateTime? // set when the batch goes In progress; money collected is counted from here
-  closedAt    DateTime?
-  createdById String
-  loans       BatchLoan[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  @@index([type, status])
-  @@index([agencyId])
-}
-
-// One case inside a batch. Deleting a draft batch removes its rows; a case can sit in only one unfinished batch of each type (checked in code).
-model BatchLoan {
-  batchId String
-  batch   Batch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  loanId  String
-  loan    Loan   @relation(fields: [loanId], references: [id])
-
-  @@id([batchId, loanId])
-  @@index([loanId])
 }
 
 model Customer {
@@ -193,7 +149,6 @@ model Loan {
   dispositions      Disposition[]
   calls             Call[]
   payments          Payment[]
-  batches           BatchLoan[]
   settlements       Settlement[]
 
   @@index([company, branch])

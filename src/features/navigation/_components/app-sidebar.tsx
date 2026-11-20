@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseIcon, LayersIcon, CalendarClockIcon, RocketIcon, LayoutDashboardIcon, MessageSquareTextIcon, PhoneIcon, SettingsIcon, StoreIcon, TrendingUpIcon, TrophyIcon, UploadIcon, UsersIcon } from "lucide-react";
+import { BriefcaseIcon, CalendarClockIcon, RocketIcon, LayoutDashboardIcon, MessageSquareTextIcon, PhoneIcon, SettingsIcon, StoreIcon, TrendingUpIcon, TrophyIcon, UploadIcon, UsersIcon } from "lucide-react";
 import type { Role } from "@/generated/prisma/client";
 import { isWorkerRole } from "@/lib/constants";
 import { useMe } from "@/features/auth/hooks/use-me";
@@ -28,7 +28,6 @@ type NavItem = { title: string; agentTitle?: string; href: string; icon: typeof 
 const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboardIcon },
   { title: "Cases", agentTitle: "My cases", href: "/cases", icon: BriefcaseIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] },
-  { title: "Batches", href: "/batches", icon: LayersIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
   { title: "Follow-ups", href: "/follow-ups", icon: CalendarClockIcon, roles: ["AGENT"] },
   // TODO: Calls module is hidden from the sidebar for now (the page and API still exist). We will add it back in a future feature module.
   // { title: "Calls", agentTitle: "My calls", href: "/calls", icon: PhoneIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] },
@@ -37,7 +36,6 @@ const NAV_ITEMS: NavItem[] = [
   { title: "Imports", href: "/imports", icon: UploadIcon, roles: ["ADMIN"] },
   { title: "Retailers", href: "/retailers", icon: StoreIcon, roles: ["ADMIN"] },
   { title: "Questions", href: "/questions", icon: MessageSquareTextIcon, roles: ["ADMIN"] },
-  { title: "Team", href: "/team", icon: UsersIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
   // TODO: Remove the cut-over page once we have a team management feature. For now, the cut-over page is just a placeholder and not linked anywhere.
   // { title: "Cut-over", href: "/cutover", icon: RocketIcon, roles: ["ADMIN"] },
   { title: "Settings", href: "/settings", icon: SettingsIcon, roles: ["ADMIN"] },

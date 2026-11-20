@@ -38,7 +38,6 @@ export const seedFollowUps = async () => {
   const old = await prisma.loan.findMany({ where: { agreementNo: { startsWith: PREFIX } }, select: { id: true, customerId: true } });
   if (old.length) {
     const loanIds = old.map((l) => l.id);
-    await prisma.batchLoan.deleteMany({ where: { loanId: { in: loanIds } } });
     await prisma.call.deleteMany({ where: { loanId: { in: loanIds } } });
     await prisma.disposition.deleteMany({ where: { loanId: { in: loanIds } } });
     await prisma.allocation.deleteMany({ where: { loanId: { in: loanIds } } });

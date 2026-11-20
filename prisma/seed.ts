@@ -4,7 +4,6 @@ import { notificationKey } from "../src/lib/notifications";
 import { paymentDedupeKey } from "../src/lib/imports/payments";
 import { hashPassword } from "../src/lib/password";
 import { addDays, toDbDate, todayIst } from "../src/lib/dates";
-import { seedBatches } from "./seed-batches";
 import { seedFollowUps } from "./seed-follow-ups";
 import { seedRemap } from "./seed-remap";
 import { seedQuestions } from "./seed-questions";
@@ -180,7 +179,6 @@ const main = async () => {
       });
     }
   }
-  await seedBatches();
   await seedFollowUps();
   await seedRemap(PASSWORD);
   await seedRetailers();

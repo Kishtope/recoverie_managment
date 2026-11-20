@@ -15,7 +15,6 @@ import { ROLE_LABELS, isWorkerRole } from "@/lib/constants";
 
 // Display names for the first URL segment of each module; unknown segments fall back to a capitalised slug.
 const SECTION_TITLES: Record<string, string> = {
-  batches: "Batches",
   calls: "Calls",
   cases: "Cases",
   cutover: "Cut-over",
@@ -25,7 +24,6 @@ const SECTION_TITLES: Record<string, string> = {
   scorecards: "Performance",
   recovery: "Recovery",
   settings: "Settings",
-  team: "Team",
 };
 
 type Crumb = { label: string; href?: string };
