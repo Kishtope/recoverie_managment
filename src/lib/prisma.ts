@@ -14,6 +14,8 @@ const createClient = () =>
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       connectionLimit: 5,
+      // MySQL 8 caching_sha2_password needs this to fetch the RSA key on non-TLS connections.
+      allowPublicKeyRetrieval: true,
     }),
   });
 
