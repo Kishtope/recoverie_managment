@@ -12,6 +12,7 @@ const OUTCOME_STYLE: Record<(typeof OUTCOMES)[number], { variant: "default" | "s
   WRONG_NUMBER: { variant: "outline" },
   REFUSED_DISPUTE: { variant: "destructive" },
   NOT_INTERESTED: { variant: "outline" },
+  OTHER: { variant: "outline" },
 };
 
 /**

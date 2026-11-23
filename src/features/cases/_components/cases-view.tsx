@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UsersRoundIcon, WandSparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -55,6 +56,9 @@ const STAGE_OPTIONS = [
 export const CasesView = () => {
   const { data: me } = useMe();
   const isAgent = isWorkerRole(me?.role);
+  // Agents and callers use the Follow-ups page as their case list, so send them there.
+  const router = useRouter();
+  useEffect(() => { if (isAgent) router.replace("/follow-ups"); }, [isAgent, router]);
   const isAdmin = me?.role === "ADMIN";
   const canSeeFlags = me?.role === "ADMIN" || me?.role === "MANAGER";
   // Admin / Manager may run the allocation engine; they and Agency owners may reassign a selection (the API checks scope).

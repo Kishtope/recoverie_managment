@@ -79,7 +79,7 @@ test("a refused / dispute outcome notifies the agent's manager in the same trans
   expect(notified).toHaveLength(0);
 });
 
-const post = async (body: unknown) => (await POST(new Request("http://x", { method: "POST", body: JSON.stringify(body) }), { params: Promise.resolve({ id: "L1" }) })) as Response;
+const post = async (body: unknown) => (await POST(new Request("http://x", { method: "POST", body: JSON.stringify({ remarks: "Spoke to the customer", ...(body as object) }) }), { params: Promise.resolve({ id: "L1" }) })) as Response;
 
 test("customer answers are saved with the question text copied from the database, not from the client", async () => {
   activeQuestions = [{ id: "q1", text: "Why is your payment delayed?", category: "PAYMENT_DELAY_REASON" }];

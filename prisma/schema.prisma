@@ -207,6 +207,7 @@ enum Outcome {
   WRONG_NUMBER
   REFUSED_DISPUTE
   NOT_INTERESTED
+  OTHER
 }
 
 // One recorded conversation outcome on a loan; never edited or deleted (a mistake is fixed by adding a new one).

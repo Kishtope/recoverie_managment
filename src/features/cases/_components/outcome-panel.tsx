@@ -132,8 +132,7 @@ export const OutcomePanel = ({
   const answered = Object.values(answers).filter((a) => a.response.trim() !== "").length;
   // Needs a manager's attention rather than another call, so no follow-up date is asked for.
   const endsFollowUp = c === "REFUSED" || c === "DISPUTE";
-  const showFollowUp = c === "PART_PAID" || c === "CALLBACK" || c === "NO_ANSWER" || c === "BUSY";
-  const remarksRequired = c === "WRONG_NUMBER";
+  const showFollowUp = c === "PART_PAID" || c === "CALLBACK" || c === "NO_ANSWER" || c === "BUSY" || c === "OTHER";
 
   return (
     <Card id="outcome-panel" className="scroll-mt-4">
@@ -279,7 +278,7 @@ export const OutcomePanel = ({
 
             {showFollowUp && c !== "CALLBACK" && (
               <Field data-invalid={!!errors.nextFollowUpOn}>
-                <FieldLabel>{c === "PART_PAID" ? "Follow up for the remaining amount" : "Try again on"}</FieldLabel>
+                <FieldLabel>{c === "PART_PAID" ? "Follow up for the remaining amount" : c === "OTHER" ? "Follow up on (optional)" : "Try again on"}</FieldLabel>
                 <DatePicker
                   value={values.nextFollowUpOn}
                   onChange={(v) => {
@@ -299,7 +298,7 @@ export const OutcomePanel = ({
             {endsFollowUp && <p className="text-sm text-muted-foreground">Your manager is told about this case. No follow-up is scheduled and calls are paused until they review it.</p>}
 
             <Field data-invalid={!!errors.remarks}>
-              <FieldLabel htmlFor="remarks">{remarksRequired ? "Remarks (required)" : "Remarks (optional)"}</FieldLabel>
+              <FieldLabel htmlFor="remarks">Remarks</FieldLabel>
               <Textarea id="remarks" rows={3} value={values.remarks} onChange={(e) => set("remarks", e.target.value)} maxLength={1000} aria-invalid={!!errors.remarks} />
               {errors.remarks && <FieldError>{errors.remarks}</FieldError>}
             </Field>

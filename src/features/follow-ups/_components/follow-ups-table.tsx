@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { DataTableColumn } from "@/components/data-table";
 import { FollowUpBadge } from "@/components/follow-up-badge";
 import { OutcomeBadge } from "@/components/outcome-badge";
+import { formatInr } from "@/lib/format";
 import type { LoanListItem } from "@/features/cases/types";
 import type { FollowUpTabValue } from "../types";
 
@@ -63,6 +64,24 @@ const financedByColumn: DataTableColumn<LoanListItem> = {
   ),
 };
 
+// Key money columns shared with the Cases table: days past due and the overdue amount.
+const dpdColumn: DataTableColumn<LoanListItem> = { key: "dpd", header: "DPD", cell: (l) => orDash(l.dpd) };
+const overdueColumn: DataTableColumn<LoanListItem> = { key: "overdue", header: "Overdue", cell: (l) => formatInr(l.overdueAmount) };
+
+// Last outcome with the promised amount and field-visit / escalated flags, as on the Cases table.
+const remarkColumn: DataTableColumn<LoanListItem> = {
+  key: "remark",
+  header: "Remark",
+  cell: (l) => (
+    <div className="flex flex-wrap items-center gap-1">
+      <OutcomeBadge outcome={l.lastOutcome} />
+      {l.lastPtpAmount !== null && <span className="text-xs text-muted-foreground">{formatInr(l.lastPtpAmount)}</span>}
+      {l.fieldVisitFlag && <Badge variant="outline">Field visit</Badge>}
+      {l.escalated && <Badge variant="destructive">Escalated</Badge>}
+    </div>
+  ),
+};
+
 // One button that opens the case, where the agent calls and records the outcome.
 const actionColumn: DataTableColumn<LoanListItem> = {
   key: "actions",
@@ -83,15 +102,19 @@ export const getFollowUpColumns = (tab: FollowUpTabValue): DataTableColumn<LoanL
         customerColumn,
         agreementColumn,
         { key: "status", header: "Status", cell: () => <Badge variant="secondary">Closed</Badge> },
+        dpdColumn,
+        overdueColumn,
         financedByColumn,
         actionColumn,
       ]
     : [
         customerColumn,
         agreementColumn,
+        dpdColumn,
+        overdueColumn,
         { key: "dues", header: "No. of dues", cell: (l) => <Badge variant="secondary">{orDash(l.pendingEmis)}</Badge> },
         { key: "due", header: "Due", cell: (l) => (tab === "new" ? "-" : <FollowUpBadge day={l.nextFollowUpOn} />) },
-        { key: "remark", header: "Remark", cell: (l) => <OutcomeBadge outcome={l.lastOutcome} /> },
+        remarkColumn,
         financedByColumn,
         actionColumn,
       ];

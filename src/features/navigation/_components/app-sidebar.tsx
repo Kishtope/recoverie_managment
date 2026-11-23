@@ -27,7 +27,7 @@ import { NavUser } from "./nav-user";
 type NavItem = { title: string; agentTitle?: string; href: string; icon: typeof UsersIcon; roles?: Role[] };
 const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboardIcon },
-  { title: "Cases", agentTitle: "My cases", href: "/cases", icon: BriefcaseIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"] },
+  { title: "Cases", href: "/cases", icon: BriefcaseIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
   { title: "Follow-ups", href: "/follow-ups", icon: CalendarClockIcon, roles: ["AGENT", "CALLER"] },
   // TODO: Calls module is hidden from the sidebar for now (the page and API still exist). We will add it back in a future feature module.
   // { title: "Calls", agentTitle: "My calls", href: "/calls", icon: PhoneIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"] },
@@ -77,7 +77,7 @@ export const AppSidebar = () => {
                   <SidebarMenuButton
                     tooltip={title}
                     className="rounded-full data-active:bg-sidebar-primary data-active:font-semibold data-active:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground"
-                    isActive={href === "/" ? pathname === "/" : pathname.startsWith(href)}
+                    isActive={href === "/" ? pathname === "/" : pathname.startsWith(href) || (href === "/follow-ups" && pathname.startsWith("/cases"))}
                     render={<Link href={href} />}
                   >
                     <Icon />

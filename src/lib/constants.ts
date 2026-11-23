@@ -15,7 +15,7 @@ export const ROLE_LABELS: Record<(typeof ROLES)[number], string> = {
 };
 
 // Outcome codes an agent can record on a case (mirrors the Prisma `Outcome` enum) with the label shown in the UI.
-export const OUTCOMES = ["PAID", "PART_PAID", "PTP", "CALLBACK", "NOT_REACHABLE", "WRONG_NUMBER", "REFUSED_DISPUTE", "NOT_INTERESTED"] as const;
+export const OUTCOMES = ["PAID", "PART_PAID", "PTP", "CALLBACK", "NOT_REACHABLE", "WRONG_NUMBER", "REFUSED_DISPUTE", "NOT_INTERESTED", "OTHER"] as const;
 export const OUTCOME_LABELS: Record<(typeof OUTCOMES)[number], string> = {
   PAID: "Paid",
   PART_PAID: "Part paid",
@@ -25,6 +25,7 @@ export const OUTCOME_LABELS: Record<(typeof OUTCOMES)[number], string> = {
   WRONG_NUMBER: "Wrong number",
   REFUSED_DISPUTE: "Refused / dispute",
   NOT_INTERESTED: "Not interested",
+  OTHER: "Other",
 };
 
 // Finer detail stored with an outcome: why it was "not reachable", and whether "refused / dispute" was a refusal or a dispute.
@@ -45,6 +46,7 @@ export const OUTCOME_CHOICES = [
   { value: "DISPUTE", label: "Dispute", outcome: "REFUSED_DISPUTE", detail: "DISPUTE" },
   { value: "WRONG_NUMBER", label: "Wrong number", outcome: "WRONG_NUMBER" },
   { value: "NOT_INTERESTED", label: "Not interested", outcome: "NOT_INTERESTED" },
+  { value: "OTHER", label: "Other", outcome: "OTHER" },
 ] as const satisfies readonly { value: string; label: string; outcome: (typeof OUTCOMES)[number]; detail?: OutcomeDetail }[];
 export type OutcomeChoice = (typeof OUTCOME_CHOICES)[number]["value"];
 

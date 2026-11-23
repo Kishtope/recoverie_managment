@@ -3,7 +3,8 @@ import { buildDispositionSchema } from "./schemas";
 
 const schema = buildDispositionSchema("2026-11-17");
 const errorFields = (input: unknown) => {
-  const r = schema.safeParse(input);
+  // Remarks are required for every outcome, so tests supply them unless they are testing that rule.
+  const r = schema.safeParse({ remarks: "Spoke to the customer", ...(input as object) });
   return r.success ? [] : r.error.issues.map((i) => i.path[0]);
 };
 
@@ -33,7 +34,7 @@ test("a refusal needs its reason, a dispute needs a category and a description, 
   expect(errorFields({ outcome: "REFUSED_DISPUTE", outcomeDetail: "REFUSED" })).toEqual(["reason"]);
   expect(errorFields({ outcome: "REFUSED_DISPUTE", outcomeDetail: "DISPUTE" })).toEqual(["category", "reason"]);
   expect(errorFields({ outcome: "REFUSED_DISPUTE", outcomeDetail: "DISPUTE", category: "Already paid", reason: "Paid last week" })).toEqual([]);
-  expect(errorFields({ outcome: "REFUSED_DISPUTE" })).toEqual(["remarks"]);
+  expect(errorFields({ outcome: "REFUSED_DISPUTE", remarks: "" })).toEqual(["remarks"]);
   expect(errorFields({ outcome: "WRONG_NUMBER", remarks: "   " })).toEqual(["remarks"]);
 });
 
@@ -57,6 +58,7 @@ test("a date before today is rejected, today is fine", () => {
 test("fields that don't belong to the outcome are dropped", () => {
   const r = schema.parse({
     outcome: "CALLBACK",
+    remarks: "Call back tomorrow",
     nextFollowUpOn: "2026-11-18",
     callbackTime: "10:00",
     ptpAmount: 10,
@@ -74,9 +76,16 @@ test("fields that don't belong to the outcome are dropped", () => {
 });
 
 test("customer answers need text, can't repeat a question, and empty remarks are dropped", () => {
-  const base = { outcome: "NOT_INTERESTED" };
+  const base = { outcome: "NOT_INTERESTED", remarks: "Not interested" };
   expect(errorFields({ ...base, responses: [{ questionId: "q1", response: "  " }] })).toEqual(["responses"]);
   expect(errorFields({ ...base, responses: [{ questionId: "q1", response: "a" }, { questionId: "q1", response: "b" }] })).toEqual(["responses"]);
   const r = schema.parse({ ...base, responses: [{ questionId: "q1", response: " Yes ", remarks: "" }] });
   expect(r.responses).toEqual([{ questionId: "q1", response: "Yes", remarks: undefined }]);
+});
+
+test("remarks are required for every outcome, and Other may carry an optional follow-up date", () => {
+  expect(errorFields({ outcome: "NOT_INTERESTED", remarks: "" })).toEqual(["remarks"]);
+  expect(errorFields({ outcome: "OTHER", remarks: "  " })).toEqual(["remarks"]);
+  expect(errorFields({ outcome: "OTHER" })).toEqual([]);
+  expect(schema.parse({ outcome: "OTHER", remarks: "Customer abroad", nextFollowUpOn: "2026-11-20" }).nextFollowUpOn).toBe("2026-11-20");
 });

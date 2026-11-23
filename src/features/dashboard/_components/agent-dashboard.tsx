@@ -138,18 +138,18 @@ const DashboardBody = ({ data }: { data: AgentDashboardData }) => {
           </div>
           <div className="flex flex-wrap gap-2">
             {data.todayFollowUps > 0 && (
-              <Button variant="accent" size="lg" nativeButton={false} render={<Link href="/cases?followUp=today" />}>
+              <Button variant="accent" size="lg" nativeButton={false} render={<Link href="/follow-ups?tab=today" />}>
                 Start today&apos;s follow-ups
                 <ArrowRightIcon data-icon="inline-end" />
               </Button>
             )}
             {data.overdueFollowUps > 0 && (
-              <Button variant="outline" size="lg" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" nativeButton={false} render={<Link href="/cases?followUp=overdue" />}>
+              <Button variant="outline" size="lg" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" nativeButton={false} render={<Link href="/follow-ups?tab=today" />}>
                 Clear the overdue
               </Button>
             )}
             {clear && (
-              <Button variant="accent" size="lg" nativeButton={false} render={<Link href="/cases" />}>
+              <Button variant="accent" size="lg" nativeButton={false} render={<Link href="/follow-ups" />}>
                 Open my cases
                 <ArrowRightIcon data-icon="inline-end" />
               </Button>
@@ -166,14 +166,14 @@ const DashboardBody = ({ data }: { data: AgentDashboardData }) => {
             label="Overdue follow-ups"
             count={data.overdueFollowUps}
             note={data.overdueFollowUps ? "Missed on an earlier day" : "Nothing overdue"}
-            href="/cases?followUp=overdue"
+            href="/follow-ups?tab=today"
           />
           <QueueTile
             icon={HandCoinsIcon}
             label="Promises due today"
             count={data.duePtps.count}
             note={data.duePtps.count ? `${formatInr(data.duePtps.amount)} promised` : "No promises due"}
-            href="/cases?followUp=today&outcome=PTP"
+            href="/follow-ups?tab=today"
           />
           <QueueTile
             icon={PhoneMissedIcon}
@@ -226,7 +226,7 @@ const DashboardBody = ({ data }: { data: AgentDashboardData }) => {
             </CardContent>
           </Card>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/cases" />}>
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/follow-ups" />}>
               <BriefcaseIcon data-icon="inline-start" />
               My cases
             </Button>

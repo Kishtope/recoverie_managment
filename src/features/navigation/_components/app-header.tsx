@@ -31,9 +31,11 @@ type Crumb = { label: string; href?: string };
 
 // Builds the breadcrumb trail from the pathname: Dashboard > Module > Details (the last crumb is the current page, so it has no link).
 const getCrumbs = (pathname: string, isAgent: boolean): Crumb[] => {
-  const [section, id] = pathname.split("/").filter(Boolean);
+  let [section, id] = pathname.split("/").filter(Boolean);
   if (!section) return [{ label: "Dashboard" }];
 
+  // Workers have no Cases page (their list is Follow-ups), so case details sit under it.
+  if (section === "cases" && isAgent) section = "follow-ups";
   const sectionLabel = section === "cases" && isAgent ? "My cases" : section === "calls" && isAgent ? "My calls" : (SECTION_TITLES[section] ?? section.charAt(0).toUpperCase() + section.slice(1));
   const trail: Crumb[] = [{ label: "Dashboard", href: "/" }];
   if (id) {

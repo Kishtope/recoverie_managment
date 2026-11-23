@@ -18,6 +18,8 @@ import { PaymentsCard } from "@/features/payments/_components/payments-card";
 import { SettlementsCard } from "@/features/settlements/_components/settlements-card";
 import { CallButton } from "@/features/calls/_components/call-button";
 import { CallPanel } from "@/features/calls/_components/call-panel";
+import { useMe } from "@/features/auth/hooks/use-me";
+import { isWorkerRole } from "@/lib/constants";
 import { formatInr } from "@/lib/format";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { getInitials } from "@/lib/get-initials";
@@ -49,6 +51,9 @@ const Stat = ({ label, value, emphasis }: { label: string; value: ReactNode; emp
  */
 export const CaseDetailView = ({ id }: { id: string }) => {
   const { data: loan, isPending, isError, error } = useGetLoan(id);
+  // Workers reach cases from Follow-ups, so "back" returns there.
+  const { data: me } = useMe();
+  const isWorker = isWorkerRole(me?.role);
   const [reassignOpen, setReassignOpen] = useState(false);
   // Which tab of the workspace is showing: the questions to ask, or what has been recorded so far.
   const [tab, setTab] = useState("questions");
@@ -96,9 +101,9 @@ export const CaseDetailView = ({ id }: { id: string }) => {
   return (
     <>
       <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 p-4 pb-24 md:px-10 md:py-6 md:pb-6">
-        <Button variant="ghost" size="sm" className="w-fit" nativeButton={false} render={<Link href="/cases" />}>
+        <Button variant="ghost" size="sm" className="w-fit" nativeButton={false} render={<Link href={isWorker ? "/follow-ups" : "/cases"} />}>
           <ArrowLeftIcon data-icon="inline-start" />
-          Back to cases
+          {isWorker ? "Back to follow-ups" : "Back to cases"}
         </Button>
 
         {/* Profile header: who the customer is, which loan, and every flag that changes how the agent should act. */}

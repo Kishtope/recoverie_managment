@@ -60,9 +60,10 @@ export const buildDispositionSchema = (today: string = todayIst()) =>
         else if (detail === "DISPUTE") {
           need("category", "Choose a dispute category");
           need("reason", "Describe the dispute");
-        } else need("remarks", "Remarks are required for this outcome"); // older clients send no detail
+        }
       }
-      if (v.outcome === "WRONG_NUMBER") need("remarks", "Remarks are required for this outcome");
+      // Remarks are required for every outcome: they say what was actually discussed.
+      need("remarks", "Remarks are required");
       for (const field of ["ptpDate", "nextFollowUpOn"] as const) {
         const value = v[field];
         if (value && value < today) ctx.addIssue({ code: "custom", path: [field], message: "Date can't be in the past" });
@@ -83,7 +84,7 @@ export const buildDispositionSchema = (today: string = todayIst()) =>
         paymentDate: paid ? v.paymentDate : undefined,
         transactionRef: v.outcome === "PAID" ? v.transactionRef || undefined : undefined,
         callbackTime: v.outcome === "CALLBACK" ? v.callbackTime : undefined,
-        nextFollowUpOn: v.outcome === "PART_PAID" || v.outcome === "CALLBACK" || v.outcome === "NOT_REACHABLE" ? v.nextFollowUpOn : undefined,
+        nextFollowUpOn: v.outcome === "PART_PAID" || v.outcome === "CALLBACK" || v.outcome === "NOT_REACHABLE" || v.outcome === "OTHER" ? v.nextFollowUpOn : undefined,
         reason: v.outcome === "CALLBACK" || refusedOrDispute || v.outcome === "NOT_INTERESTED" ? v.reason || undefined : undefined,
         category: v.outcomeDetail === "DISPUTE" ? v.category : undefined,
         remarks: v.remarks || undefined,
