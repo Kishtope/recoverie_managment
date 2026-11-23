@@ -4,7 +4,7 @@ import { maskMobile } from "@/lib/mask";
 // ---- Is each user ready for go-live? ----
 
 export type ReadinessUser = {
-  role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT";
+  role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT" | "CALLER";
   email: string | null;
   mobile: string | null;
   lastLoginAt: Date | null;

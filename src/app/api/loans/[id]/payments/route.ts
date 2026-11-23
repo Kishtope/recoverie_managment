@@ -12,7 +12,7 @@ import type { PaymentItem } from "@/features/payments/types";
 // allocated to them; Admin, Manager and Agency owner on any case in their scope. The Payments import stays the source of truth for the
 // loan's overdue figures, so this does not change them; it makes the money visible at once (case page, promise-kept check, dashboards).
 export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

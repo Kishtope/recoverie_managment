@@ -24,6 +24,23 @@ export const followUpTabWhere = (tab: string | null | undefined, today: string):
   }
 };
 
+// Prisma `where` for the Cases page tabs, relative to `today` (IST, "yyyy-MM-dd"). A case moves between tabs by its follow-up date alone:
+// today = open, follow-up due today or earlier (not yet actioned); followup = open, follow-up date after today; closed = closed loans.
+// "all" / unknown add no condition. Closed loans never match today or followup.
+export const casesTabWhere = (stage: string | null | undefined, today: string): Prisma.LoanWhereInput => {
+  const t = toDbDate(today);
+  switch (stage) {
+    case "today":
+      return { status: "ACTIVE", nextFollowUpOn: { lte: t } };
+    case "followup":
+      return { status: "ACTIVE", nextFollowUpOn: { gt: t } };
+    case "closed":
+      return { status: "CLOSED" };
+    default:
+      return {};
+  }
+};
+
 // Prisma `where` on Loan.nextFollowUpOn for a follow-up filter ("today", "overdue", ...), relative to `today` ("yyyy-MM-dd").
 // Unknown / "all" values add no condition. Shared by the cases list and the agent dashboard so their numbers always agree.
 export const followUpWhere = (kind: string | null | undefined, today: string): Prisma.LoanWhereInput => {

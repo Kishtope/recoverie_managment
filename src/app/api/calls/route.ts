@@ -11,7 +11,7 @@ import type { CallListResponse } from "@/features/calls/types";
 // search (customer / agreement), callback=pending (unanswered inbound calls) and, for Admin, unmatched=1 (inbound calls matching no loan).
 // Newest first, except the callback queue which lists the oldest first so nobody waits longest.
 export const GET = async (req: Request) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
 
   const q = callsQuerySchema.parse(Object.fromEntries(new URL(req.url).searchParams));

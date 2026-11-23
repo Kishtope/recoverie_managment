@@ -37,7 +37,7 @@ export const userScopeWhere = (user: CurrentUser): Prisma.UserWhereInput => {
 // placed by users in their user scope or made on loans in their loan scope. Admin sees all (including inbound calls matched to no loan).
 export const callScopeWhere = (user: CurrentUser): Prisma.CallWhereInput => {
   if (user.role === "ADMIN") return {};
-  if (user.role === "AGENT") return { agentId: user.id };
+  if (user.role === "AGENT" || user.role === "CALLER") return { agentId: user.id };
   return { OR: [{ agent: userScopeWhere(user) }, { loan: loanScopeWhere(user) }] };
 };
 

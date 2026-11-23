@@ -36,7 +36,7 @@ export const FilterSheet = ({
   return (
     <>
       <Sheet>
-        <SheetTrigger render={<Button variant="outline" />}>
+        <SheetTrigger render={<Button variant="outline" size="medium" />}>
           <SlidersHorizontalIcon data-icon="inline-start" />
           Filters
           {applied.length > 0 && <Badge variant="secondary">{applied.length}</Badge>}

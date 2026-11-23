@@ -19,7 +19,7 @@ export const loadScorecards = async (user: CurrentUser, month: string, today: st
 
   const [agents, period, performance] = await Promise.all([
     prisma.user.findMany({
-      where: { AND: [userScopeWhere(user), { status: "ACTIVE", role: { in: ["AGENT", "AGENCY_OWNER"] } }] },
+      where: { AND: [userScopeWhere(user), { status: "ACTIVE", role: { in: ["AGENT", "CALLER", "AGENCY_OWNER"] } }] },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

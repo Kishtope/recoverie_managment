@@ -7,7 +7,7 @@ import type { Receipt } from "@/features/payments/types";
 // The digital receipt for one payment. Only people who can see the payment's case can read it (404 otherwise, so its existence is not leaked).
 // Customer contact details are never part of a receipt.
 export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

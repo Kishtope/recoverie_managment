@@ -27,11 +27,11 @@ import { NavUser } from "./nav-user";
 type NavItem = { title: string; agentTitle?: string; href: string; icon: typeof UsersIcon; roles?: Role[] };
 const NAV_ITEMS: NavItem[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboardIcon },
-  { title: "Cases", agentTitle: "My cases", href: "/cases", icon: BriefcaseIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] },
-  { title: "Follow-ups", href: "/follow-ups", icon: CalendarClockIcon, roles: ["AGENT"] },
+  { title: "Cases", agentTitle: "My cases", href: "/cases", icon: BriefcaseIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"] },
+  { title: "Follow-ups", href: "/follow-ups", icon: CalendarClockIcon, roles: ["AGENT", "CALLER"] },
   // TODO: Calls module is hidden from the sidebar for now (the page and API still exist). We will add it back in a future feature module.
-  // { title: "Calls", agentTitle: "My calls", href: "/calls", icon: PhoneIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"] },
-  { title: "Recovery", href: "/recovery", icon: TrendingUpIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
+  // { title: "Calls", agentTitle: "My calls", href: "/calls", icon: PhoneIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"] },
+  { title: "Collection", href: "/collection", icon: TrendingUpIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
   { title: "Performance", href: "/performance", icon: TrophyIcon, roles: ["ADMIN", "MANAGER", "AGENCY_OWNER"] },
   { title: "Imports", href: "/imports", icon: UploadIcon, roles: ["ADMIN"] },
   { title: "Retailers", href: "/retailers", icon: StoreIcon, roles: ["ADMIN"] },
@@ -59,7 +59,7 @@ export const AppSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/" />} className="hover:bg-transparent">
               <Image src="/brand/mark-dark.svg" alt="" width={32} height={32} unoptimized className="size-8 shrink-0" />
-              <div className="grid flex-1 text-left leading-tight"><span className="font-heading text-lg">KishtoPe</span><span className="truncate text-xs text-sidebar-foreground/70">Recovery</span></div>
+              <div className="grid flex-1 text-left leading-tight"><span className="font-heading text-lg">KishtoPe</span><span className="truncate text-xs text-sidebar-foreground/70">collection</span></div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

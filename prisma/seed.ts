@@ -5,6 +5,7 @@ import { paymentDedupeKey } from "../src/lib/imports/payments";
 import { hashPassword } from "../src/lib/password";
 import { addDays, toDbDate, todayIst } from "../src/lib/dates";
 import { seedFollowUps } from "./seed-follow-ups";
+import { seedCases } from "./seed-cases";
 import { seedRemap } from "./seed-remap";
 import { seedQuestions } from "./seed-questions";
 import { seedRetailers } from "./seed-retailers";
@@ -18,7 +19,7 @@ const main = async () => {
   const upsert = async (
     email: string,
     name: string,
-    role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT",
+    role: "ADMIN" | "MANAGER" | "AGENCY_OWNER" | "AGENT" | "CALLER",
     extra: { reportsToId?: string; agencyId?: string; mobile?: string; access: [("AF" | "BLD" | "MF" | "MMPL"), string][] },
   ) => {
     const { access, ...rest } = extra;
@@ -48,6 +49,8 @@ const main = async () => {
   const agent1 = await upsert("agent1@example.com", "Asha Agent", "AGENT", { reportsToId: manager.id, mobile: "9000000003", access: [["AF", "Balaghat"]] });
   const agent2 = await upsert("agent2@example.com", "Arun Agent", "AGENT", { reportsToId: owner.id, agencyId: agency.id, mobile: "9000000004", access: [["BLD", "Mandla"]] });
   const agent3 = await upsert("field1@example.com", "Farah Agent", "AGENT", { reportsToId: manager.id, mobile: "9000000005", access: [["AF", "Khairlanji"]] });
+  // A telecaller (CALLER role) so the new role can be tried straight away; holds no cases until Admin allocates some.
+  await upsert("caller1@example.com", "Chitra Caller", "CALLER", { reportsToId: manager.id, mobile: "9000000096", access: [["AF", "Balaghat"]] });
   // Sample cases so the Cases page is not empty in dev: 12 loans, the first 9 allocated (3 each), the rest unassigned.
   const companyBranch: ["AF" | "BLD", string][] = [["AF", "Balaghat"], ["BLD", "Mandla"], ["AF", "Khairlanji"]];
   const holders = [
@@ -180,6 +183,7 @@ const main = async () => {
     }
   }
   await seedFollowUps();
+  await seedCases();
   await seedRemap(PASSWORD);
   await seedRetailers();
   await seedQuestions(admin.id);

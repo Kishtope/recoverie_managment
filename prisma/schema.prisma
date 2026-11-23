@@ -12,6 +12,7 @@ enum Role {
   MANAGER
   AGENCY_OWNER
   AGENT
+  CALLER
 }
 
 enum UserStatus {

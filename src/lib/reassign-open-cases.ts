@@ -18,7 +18,7 @@ export const reassignOpenCases = async (userId: string, actedBy: string) => {
     prisma.allocation.findMany({ where: { agentId: userId, active: true, loan: { status: "ACTIVE" } }, select: { id: true, loanId: true } }),
     peerScope.length
       ? prisma.user.findMany({
-          where: { id: { not: userId }, status: "ACTIVE", role: { in: ["AGENT", "AGENCY_OWNER"] }, OR: peerScope },
+          where: { id: { not: userId }, status: "ACTIVE", role: { in: ["AGENT", "CALLER", "AGENCY_OWNER"] }, OR: peerScope },
           select: { id: true, agencyId: true, _count: { select: { allocations: { where: { active: true } } } } },
         })
       : Promise.resolve([]),

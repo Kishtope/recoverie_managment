@@ -3,7 +3,8 @@ import type { Prisma } from "@/generated/prisma/client";
 import { requireUser, loanScopeWhere } from "@/lib/auth";
 import { BRANCHES, COMPANIES, OUTCOMES } from "@/lib/constants";
 import { fromDbDate, todayIst } from "@/lib/dates";
-import { followUpTabWhere, followUpWhere } from "@/lib/follow-up-where";
+import { dpdBucketWhere } from "@/lib/dpd-bucket";
+import { casesTabWhere, followUpTabWhere, followUpWhere } from "@/lib/follow-up-where";
 import { maskMobile } from "@/lib/mask";
 import { prisma } from "@/lib/prisma";
 import type { LoanListItem } from "@/features/cases/types";
@@ -12,7 +13,7 @@ import type { LoanListItem } from "@/features/cases/types";
 // Default order: next follow-up first (no follow-up last), then higher DPD, then bigger overdue amount. Mobile numbers are masked. Admins also get
 // each customer's retailer and can filter by it.
 export const GET = async (req: Request) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
 
   const sp = new URL(req.url).searchParams;
@@ -48,7 +49,10 @@ export const GET = async (req: Request) => {
       company && (COMPANIES as readonly string[]).includes(company) ? { company: company as (typeof COMPANIES)[number] } : {},
       branch && (BRANCHES as readonly string[]).includes(branch) ? { branch } : {},
       retailerId === "none" ? { customer: { retailerId: null } } : retailerId ? { customer: { retailerId } } : {},
+      dpdBucketWhere(sp.get("dpd")),
       followUpWhere(sp.get("followUp"), todayIst()),
+      // The Cases page tabs (all / today / followup / closed).
+      casesTabWhere(sp.get("stage"), todayIst()),
       // The agent Follow-ups page tabs (new / today / post / closed).
       followUpTabWhere(sp.get("tab"), todayIst()),
       outcome && (OUTCOMES as readonly string[]).includes(outcome) ? { lastOutcome: outcome as (typeof OUTCOMES)[number] } : {},

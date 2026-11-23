@@ -14,7 +14,7 @@ import type { DispositionResult } from "@/features/cases/types";
 // allocated to may do this (ownCaseWhere = their active cases); anything else is a 404. The Disposition, its answers and the Loan's follow-up
 // state change together in one transaction. Each answer keeps its own copy of the question text, taken here from the database (never from the client).
 export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["AGENT"]);
+  const auth = await requireUser(["AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

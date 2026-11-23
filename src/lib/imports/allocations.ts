@@ -7,7 +7,7 @@ import { applyInChunks, chunk, sequential, type ApplyResult } from "./shared";
 export type ValidAllocationRow = { row: number; data: AllocationRow };
 
 // Roles a case can be allocated to.
-const ALLOCATABLE: Role[] = ["AGENT", "AGENCY_OWNER"];
+const ALLOCATABLE: Role[] = ["AGENT", "CALLER", "AGENCY_OWNER"];
 
 export type PlanInput = {
   rows: ValidAllocationRow[];

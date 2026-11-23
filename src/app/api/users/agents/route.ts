@@ -9,7 +9,7 @@ export const GET = async () => {
   if ("error" in auth) return auth.error;
 
   const agents = await prisma.user.findMany({
-    where: { AND: [userScopeWhere(auth.user), { status: "ACTIVE", role: { in: ["AGENT", "AGENCY_OWNER"] } }] },
+    where: { AND: [userScopeWhere(auth.user), { status: "ACTIVE", role: { in: ["AGENT", "CALLER", "AGENCY_OWNER"] } }] },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

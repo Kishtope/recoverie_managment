@@ -8,7 +8,7 @@ import { requestSettlementSchema } from "@/features/settlements/schemas";
 // An agent or recruiter asks for a one-time settlement on a case allocated to them: the customer pays `requestedAmount`, the rest of the
 // overdue is waived. One open request per case at a time. A Manager or Admin decides it (see /api/settlements/[id]/decision).
 export const POST = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["AGENT"]);
+  const auth = await requireUser(["AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

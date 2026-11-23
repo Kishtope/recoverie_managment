@@ -17,6 +17,7 @@ import { useMe } from "@/features/auth/hooks/use-me";
 import { useGetRetailers } from "@/features/retailers/hooks/use-get-retailers";
 import { useTeamOptions } from "@/features/team/hooks/use-team-options";
 import { BRANCHES, COMPANIES, OUTCOMES, OUTCOME_LABELS, isWorkerRole } from "@/lib/constants";
+import { DPD_BUCKETS, DPD_BUCKET_LABELS } from "@/lib/dpd-bucket";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
 import { useCasesParams } from "../hooks/use-cases-params";
@@ -31,17 +32,19 @@ const PAGE_SIZE = 10;
 const COMPANY_OPTIONS = [{ value: "all", label: "All companies" }, ...COMPANIES.map((c) => ({ value: c, label: c }))];
 const BRANCH_OPTIONS = [{ value: "all", label: "All branches" }, ...BRANCHES.map((b) => ({ value: b, label: b }))];
 const OUTCOME_OPTIONS = [{ value: "all", label: "Any outcome" }, ...OUTCOMES.map((o) => ({ value: o, label: OUTCOME_LABELS[o] }))];
+const DPD_OPTIONS = [{ value: "all", label: "Any DPD" }, ...DPD_BUCKETS.map((b) => ({ value: b, label: `DPD ${DPD_BUCKET_LABELS[b]}` }))];
 const FLAG_OPTIONS = [
   { value: "all", label: "No flag filter" },
   { value: "field-visit", label: "Field visit flag" },
   { value: "escalated", label: "Escalated" },
   { value: "settlement-pending", label: "Settlement waiting" },
 ];
-const FOLLOW_UP_OPTIONS = [
+// Tabs: a case moves between Today and Follow-up by its follow-up date (IST); Closed holds closed loans.
+const STAGE_OPTIONS = [
   { value: "all", label: "All" },
   { value: "today", label: "Today" },
-  { value: "overdue", label: "Overdue" },
-  { value: "upcoming", label: "Upcoming" },
+  { value: "followup", label: "Follow-up" },
+  { value: "closed", label: "Closed" },
 ];
 
 /**
@@ -68,9 +71,10 @@ export const CasesView = () => {
     agentId: params.filters.agent,
     company: params.filters.company,
     branch: params.filters.branch,
-    followUp: params.filters.followUp,
+    stage: params.filters.stage,
     outcome: params.filters.outcome,
     flag: params.filters.flag,
+    dpd: params.filters.dpd,
     retailerId: params.filters.retailer,
     page: params.page,
     pageSize: PAGE_SIZE,
@@ -101,6 +105,7 @@ export const CasesView = () => {
 
   // Filters kept out of the toolbar (they open in the Filters sheet); which ones exist depends on the role.
   const fields: FilterField[] = [
+    { key: "dpd", label: "DPD", options: DPD_OPTIONS, value: params.filters.dpd },
     { key: "outcome", label: "Last outcome", options: OUTCOME_OPTIONS, value: params.filters.outcome },
     ...(isAdmin ? [{ key: "agent", label: "Agent", options: agentOptions, value: params.filters.agent }] : []),
     ...(isAdmin ? [{ key: "retailer", label: "Retailer", options: retailerOptions, value: params.filters.retailer }] : []),
@@ -113,11 +118,11 @@ export const CasesView = () => {
       <div className="flex flex-wrap items-center gap-2">
         <ToggleGroup
           variant="outline"
-          aria-label="Follow-up"
-          value={[params.filters.followUp]}
-          onValueChange={(v) => v[0] && params.setFilter("followUp", v[0])}
+          aria-label="Case tab"
+          value={[params.filters.stage]}
+          onValueChange={(v) => v[0] && params.setFilter("stage", v[0])}
         >
-          {FOLLOW_UP_OPTIONS.map((o) => (
+          {STAGE_OPTIONS.map((o) => (
             <ToggleGroupItem key={o.value} value={o.value}>{o.label}</ToggleGroupItem>
           ))}
         </ToggleGroup>

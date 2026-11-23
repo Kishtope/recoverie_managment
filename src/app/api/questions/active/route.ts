@@ -5,7 +5,7 @@ import type { ActiveQuestion } from "@/features/questions/types";
 
 // The questions agents ask on a call: only active ones, ordered by category then display order. Read-only; agents cannot change them.
 export const GET = async () => {
-  const auth = await requireUser(["AGENT"]);
+  const auth = await requireUser(["AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
 
   const rows = await prisma.customerQuestion.findMany({

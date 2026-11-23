@@ -44,9 +44,11 @@ export type LoanListQuery = {
   agentId: string;
   company: string;
   branch: string;
-  followUp: string;
+  followUp?: string;
   outcome: string;
   flag: string;
+  stage?: string; // Cases page tab: all | today | followup | closed
+  dpd?: string; // DPD bucket: 0-30 | 31-60 | 61-90 | 90+ | none
   retailerId?: string; // Admin only: a retailer id, or "none" = customers without a retailer
   tab?: string; // Follow-ups page tab: new | today | post | closed
   sort?: string; // "recent" = newest uploaded first; omitted = by follow-up date

@@ -25,7 +25,7 @@ const maskReferences = (value: unknown) =>
 
 // One case with its customer and full outcome history. A case outside the caller's scope is a 404 (not 403) so its existence is not leaked.
 export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> }) => {
-  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT"]);
+  const auth = await requireUser(["ADMIN", "MANAGER", "AGENCY_OWNER", "AGENT", "CALLER"]);
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
 

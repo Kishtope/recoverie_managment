@@ -22,7 +22,7 @@ const SECTION_TITLES: Record<string, string> = {
   imports: "Imports",
   performance: "Performance",
   scorecards: "Performance",
-  recovery: "Recovery",
+  collection: "Collection",
   settings: "Settings",
   team: "Team",
 };
@@ -55,7 +55,7 @@ export const AppHeader = () => {
   const crumbs = getCrumbs(pathname, isWorkerRole(me?.role));
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur supports-backdrop-filter:bg-background/70">
+    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur supports-backdrop-filter:bg-background/70">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="h-5 data-vertical:self-center" />
 
