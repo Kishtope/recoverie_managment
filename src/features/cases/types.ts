@@ -56,6 +56,21 @@ export type LoanListQuery = {
   pageSize: number;
 };
 
+// Raw outcome-form text; converted to numbers / undefined only when validating on submit.
+export type OutcomeFormValues = {
+  choice: string;
+  ptpDate: string;
+  ptpAmount: string;
+  paidAmount: string;
+  paymentDate: string;
+  transactionRef: string;
+  callbackTime: string;
+  nextFollowUpOn: string;
+  reason: string;
+  category: string;
+  remarks: string;
+};
+
 // One customer answer saved with an interaction. The question text is the copy taken when it was saved, so it never changes.
 export type ResponseItem = { id: string; questionText: string; category: QuestionCategoryCode; response: string; remarks: string | null };
 

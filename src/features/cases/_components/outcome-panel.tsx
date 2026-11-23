@@ -18,22 +18,9 @@ import { suggestFollowUp } from "@/lib/dispositions";
 import { formatInr } from "@/lib/format";
 import { useAddDisposition } from "../hooks/use-add-disposition";
 import { buildDispositionSchema } from "../schemas";
+import type { OutcomeFormValues as Values } from "../types";
 import type { Answers } from "./customer-query-card";
 
-// Raw form text; converted to numbers / undefined only when validating on submit.
-type Values = {
-  choice: string;
-  ptpDate: string;
-  ptpAmount: string;
-  paidAmount: string;
-  paymentDate: string;
-  transactionRef: string;
-  callbackTime: string;
-  nextFollowUpOn: string;
-  reason: string;
-  category: string;
-  remarks: string;
-};
 const EMPTY: Values = { choice: "", ptpDate: "", ptpAmount: "", paidAmount: "", paymentDate: "", transactionRef: "", callbackTime: "", nextFollowUpOn: "", reason: "", category: "", remarks: "" };
 
 // Empty text means "not filled"; otherwise the number (NaN is left to zod to reject).
