@@ -43,11 +43,16 @@ export const userSheetRows = (users: UserRow[], names: Map<string, string>) =>
   ]);
 
 // Adds a sheet with a bold header row and sensible column widths.
-const addSheet = (wb: ExcelJS.Workbook, name: string, header: string[], rows: (string | number)[][]) => {
+export const addSheet = (wb: ExcelJS.Workbook, name: string, header: string[], rows: (string | number)[][]) => {
   const sheet = wb.addWorksheet(name);
   sheet.addRow(header).font = { bold: true };
   sheet.addRows(rows);
-  sheet.columns.forEach((col) => (col.width = Math.max(14, ...(col.values ?? []).map((v) => String(v ?? "").length + 2).slice(0, 50))));
+  // Width of each column from its header and the first 50 rows. Computed from the arrays directly: `col.values` has an empty first slot,
+  // which turned the width into NaN, wrote `<col>` without a width and made Excel show every column at zero width (an "empty" sheet).
+  header.forEach((title, i) => {
+    const longest = Math.max(title.length, ...rows.slice(0, 50).map((r) => String(r[i] ?? "").length));
+    sheet.getColumn(i + 1).width = Math.min(60, Math.max(14, longest + 2));
+  });
   return sheet;
 };
 

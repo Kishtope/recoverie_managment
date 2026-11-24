@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import type { Prisma } from "@/generated/prisma/client";
-import { requireUser, loanScopeWhere } from "@/lib/auth";
-import { BRANCHES, COMPANIES, OUTCOMES } from "@/lib/constants";
-import { fromDbDate, todayIst } from "@/lib/dates";
-import { dpdBucketWhere } from "@/lib/dpd-bucket";
-import { casesTabWhere, followUpTabWhere, followUpWhere } from "@/lib/follow-up-where";
+import { requireUser } from "@/lib/auth";
+import { fromDbDate } from "@/lib/dates";
+import { buildLoanListWhere } from "@/lib/loans-list-where";
 import { maskMobile } from "@/lib/mask";
 import { prisma } from "@/lib/prisma";
 import type { LoanListItem } from "@/features/cases/types";
@@ -17,48 +14,14 @@ export const GET = async (req: Request) => {
   if ("error" in auth) return auth.error;
 
   const sp = new URL(req.url).searchParams;
-  const q = sp.get("q")?.trim();
-  const agentId = sp.get("agentId");
-  const company = sp.get("company");
-  const branch = sp.get("branch");
-  const outcome = sp.get("outcome");
-  const flag = sp.get("flag");
-  // Retailer filter and field are for Admins only (the retailer module is Admin only); "none" = customers without a retailer.
+  // The retailer field is for Admins only (the retailer module is Admin only).
   const isAdmin = auth.user.role === "ADMIN";
-  const retailerId = isAdmin ? sp.get("retailerId") : null;
   // "recent" = newest uploaded first (Customers page); the default order is by follow-up.
   const recent = sp.get("sort") === "recent";
   const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(sp.get("pageSize") ?? "10", 10) || 10));
 
-  const where: Prisma.LoanWhereInput = {
-    AND: [
-      loanScopeWhere(auth.user),
-      q
-        ? {
-            OR: [
-              { agreementNo: { contains: q } },
-              { customer: { name: { contains: q } } },
-              // Digits (4+) also match the customer's real numbers; the response still only carries masked ones.
-              ...(/^\d{4,}$/.test(q) ? [{ customer: { mobilePrimary: { contains: q } } }, { customer: { mobileAlt: { contains: q } } }] : []),
-            ],
-          }
-        : {},
-      // "none" = loans with no active allocation (unassigned).
-      agentId === "none" ? { allocations: { none: { active: true } } } : agentId ? { allocations: { some: { active: true, agentId } } } : {},
-      company && (COMPANIES as readonly string[]).includes(company) ? { company: company as (typeof COMPANIES)[number] } : {},
-      branch && (BRANCHES as readonly string[]).includes(branch) ? { branch } : {},
-      retailerId === "none" ? { customer: { retailerId: null } } : retailerId ? { customer: { retailerId } } : {},
-      dpdBucketWhere(sp.get("dpd")),
-      followUpWhere(sp.get("followUp"), todayIst()),
-      // The Cases page tabs (all / today / followup / closed).
-      casesTabWhere(sp.get("stage"), todayIst()),
-      // The agent Follow-ups page tabs (new / today / post / closed).
-      followUpTabWhere(sp.get("tab"), todayIst()),
-      outcome && (OUTCOMES as readonly string[]).includes(outcome) ? { lastOutcome: outcome as (typeof OUTCOMES)[number] } : {},
-      flag === "field-visit" ? { fieldVisitFlag: true } : flag === "escalated" ? { escalatedAt: { not: null } } : flag === "settlement-pending" ? { settlements: { some: { status: "PENDING" } } } : {},
-    ],
-  };
+  const where = buildLoanListWhere(auth.user, sp);
 
   const [loans, total] = await Promise.all([
     prisma.loan.findMany({

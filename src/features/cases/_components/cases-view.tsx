@@ -6,6 +6,7 @@ import { UsersRoundIcon, WandSparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/data-table";
+import { ExportExcelButton } from "@/components/export-excel-button";
 import { EntityContainer } from "@/components/entity-components/entity-container";
 import { EntityEmptyView } from "@/components/entity-components/entity-empty-view";
 import { EntityHeader } from "@/components/entity-components/entity-header";
@@ -22,6 +23,7 @@ import { DPD_BUCKETS, DPD_BUCKET_LABELS } from "@/lib/dpd-bucket";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
 import { useCasesParams } from "../hooks/use-cases-params";
+import { useExportCases } from "../hooks/use-export-cases";
 import { useGetLoans } from "../hooks/use-get-loans";
 import { AutoAllocateDialog } from "./auto-allocate-dialog";
 import { BulkReassignDialog } from "./bulk-reassign-dialog";
@@ -70,7 +72,8 @@ export const CasesView = () => {
   const [allocateOpen, setAllocateOpen] = useState(false);
 
   const params = useCasesParams();
-  const { data, isPending, isError, error, isPlaceholderData } = useGetLoans({
+  // The search and filters on screen; the list adds paging, the Excel export downloads every match.
+  const filterQuery = {
     q: params.q,
     agentId: params.filters.agent,
     company: params.filters.company,
@@ -80,9 +83,9 @@ export const CasesView = () => {
     flag: params.filters.flag,
     dpd: params.filters.dpd,
     retailerId: params.filters.retailer,
-    page: params.page,
-    pageSize: PAGE_SIZE,
-  });
+  };
+  const { data, isPending, isError, error, isPlaceholderData } = useGetLoans({ ...filterQuery, page: params.page, pageSize: PAGE_SIZE });
+  const { mutate: exportCases, isPending: isExporting } = useExportCases();
   // Only Admins can list every agent for the dropdown (the options endpoint is Admin only).
   const { data: options } = useTeamOptions(isAdmin);
   // Admins can also filter by retailer; the dropdown lists the first 100 (the API's page limit).
@@ -153,11 +156,16 @@ export const CasesView = () => {
           title={isAgent ? "My cases" : "Cases"}
           description={isAgent ? "Your allocated cases, next follow-up first." : "Loans and who each one is allocated to."}
           actions={
-            canAllocate && (
-              <Button size="sm" variant="outline" onClick={() => setAllocateOpen(true)}>
-                <WandSparklesIcon data-icon="inline-start" />
-                Auto-allocate
-              </Button>
+            canSelect && (
+              <>
+                <ExportExcelButton onClick={() => exportCases(filterQuery)} isPending={isExporting} />
+                {canAllocate && (
+                  <Button size="sm" variant="outline" onClick={() => setAllocateOpen(true)}>
+                    <WandSparklesIcon data-icon="inline-start" />
+                    Auto-allocate
+                  </Button>
+                )}
+              </>
             )
           }
         />

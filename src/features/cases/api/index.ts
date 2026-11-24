@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { fetchFile } from "@/lib/download-file";
 import type { AutoAllocateInput, BulkReassignInput, ComplianceInput, DispositionFormInput, ReassignInput } from "../schemas";
 import type { AutoAllocateResult, BulkReassignResult, DispositionResult, LoanDetailResponse, LoanListQuery, LoanListResponse } from "../types";
 
@@ -44,3 +45,6 @@ export const autoAllocate = async (body: AutoAllocateInput) => {
   const { data } = await api.post<AutoAllocateResult>("/allocation/auto", body);
   return data;
 };
+
+// Downloads an Excel file of every case matching the filters (the paging fields are dropped; the server exports all matches).
+export const downloadCases = (query: Omit<LoanListQuery, "page" | "pageSize">) => fetchFile("/loans/export", query, "cases.xlsx");

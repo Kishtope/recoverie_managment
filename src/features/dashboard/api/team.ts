@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { fetchFile } from "@/lib/download-file";
 import type { TeamChartsResponse, TeamFilters, TeamSummaryResponse, TeamUsersResponse } from "../types";
 
 // Filters as a query string: empty and "all" values are left out so the server uses its defaults.
@@ -21,3 +22,6 @@ export const getTeamCharts = async (filters: TeamFilters) => {
   const { data } = await api.get<TeamChartsResponse>("/dashboard/charts", { params: toParams(filters) });
   return data;
 };
+
+// Downloads the whole user-wise recovery table (all agents, current filters and sort) as an Excel file.
+export const downloadTeamUsers = (filters: TeamFilters & { sort: string }) => fetchFile("/dashboard/users/export", filters, "recovery.xlsx");

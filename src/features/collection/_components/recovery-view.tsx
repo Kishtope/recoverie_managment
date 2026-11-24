@@ -9,9 +9,11 @@ import { EntityHeader } from "@/components/entity-components/entity-header";
 import { EntityPagination } from "@/components/entity-components/entity-pagination";
 import { ErrorView } from "@/components/entity-components/error-view";
 import { LoadingView } from "@/components/entity-components/loading-view";
+import { ExportExcelButton } from "@/components/export-excel-button";
 import { FilterSelect } from "@/components/filter-select";
 import { TeamFilters } from "@/features/dashboard/_components/team-filters";
 import { getTeamUserColumns } from "@/features/dashboard/_components/team-users-table";
+import { useExportTeamUsers } from "@/features/dashboard/hooks/use-export-team-users";
 import { useGetTeamUsers } from "@/features/dashboard/hooks/use-team-dashboard";
 import { useTeamParams } from "@/features/dashboard/hooks/use-team-params";
 import { AddPaymentDialog } from "@/features/payments/_components/add-payment-dialog";
@@ -43,6 +45,7 @@ export const RecoveryView = () => {
   // Whether the Add payment flow is open.
   const [addingPayment, setAddingPayment] = useState(false);
   const { data, isPending, isError, error, isPlaceholderData } = useGetTeamUsers({ ...params.query, sort: params.sort, page: params.page, pageSize: PAGE_SIZE });
+  const { mutate: exportUsers, isPending: isExporting } = useExportTeamUsers();
   const columns = useMemo(() => getTeamUserColumns(), []);
 
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
@@ -56,6 +59,7 @@ export const RecoveryView = () => {
         // TODO: Export Excel is hidden until the exported Daily MIS file is checked (it came out empty for some filters). Re-add: import ExportMisButton from "@/features/reports/_components/export-mis-button" and render <ExportMisButton query={params.query} />.
         actions={
           <>
+            <ExportExcelButton onClick={() => exportUsers({ ...params.query, sort: params.sort })} isPending={isExporting} />
             <FilterSelect value={params.sort} onChange={(v) => params.setFilter("sort", v)} options={SORT_OPTIONS} ariaLabel="Sort by" className="w-48" />
           </>
         }
