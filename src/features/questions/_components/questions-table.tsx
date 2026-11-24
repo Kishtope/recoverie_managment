@@ -1,7 +1,15 @@
 import { format } from "date-fns";
-import { PencilIcon, PowerIcon, PowerOffIcon, Trash2Icon } from "lucide-react";
+import { MoreVerticalIcon, PencilIcon, PowerIcon, PowerOffIcon, Trash2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import type { DataTableColumn } from "@/components/data-table";
 import { QUESTION_CATEGORY_LABELS } from "@/lib/constants";
@@ -51,19 +59,29 @@ export const getQuestionsColumns = (actions: QuestionRowActions): DataTableColum
     cell: (q) => {
       const pending = actions.pendingId === q.id;
       return (
-        <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={() => actions.onEdit(q)}>
-            <PencilIcon data-icon="inline-start" />
-            Edit
-          </Button>
-          <Button size="sm" variant={q.active ? "outline" : "accent"} disabled={pending} onClick={() => actions.onToggle(q)}>
-            {pending ? <Spinner data-icon="inline-start" /> : q.active ? <PowerOffIcon data-icon="inline-start" /> : <PowerIcon data-icon="inline-start" />}
-            {q.active ? "Deactivate" : "Activate"}
-          </Button>
-          <Button size="sm" variant="outline" disabled={pending} onClick={() => actions.onDelete(q)}>
-            <Trash2Icon data-icon="inline-start" />
-            Delete
-          </Button>
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button size="icon" variant="ghost" aria-label="Question actions" />}>
+              {pending ? <Spinner /> : <MoreVerticalIcon />}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => actions.onEdit(q)}>
+                  <PencilIcon />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={pending} onClick={() => actions.onToggle(q)}>
+                  {q.active ? <PowerOffIcon /> : <PowerIcon />}
+                  {q.active ? "Deactivate" : "Activate"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" disabled={pending} onClick={() => actions.onDelete(q)}>
+                  <Trash2Icon />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },

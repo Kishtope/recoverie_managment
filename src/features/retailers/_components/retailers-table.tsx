@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { EyeIcon, PencilIcon, PowerIcon, PowerOffIcon } from "lucide-react";
+import { EyeIcon, MoreVerticalIcon, PencilIcon, PowerIcon, PowerOffIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import type { DataTableColumn } from "@/components/data-table";
 import { getInitials } from "@/lib/get-initials";
@@ -22,7 +30,7 @@ export const RetailerStatusBadge = ({ status }: { status: RetailerItem["status"]
   <Badge variant={status === "ACTIVE" ? "secondary" : "outline"}>{RETAILER_STATUS_LABELS[status]}</Badge>
 );
 
-// Columns of the Retailers table. The retailer cell links to its customer list and shows the code and city on a muted line; row actions are
+// Columns of the Retailers table. The retailer cell links to its customer list and shows the code and city on a muted line; row actions live in a 3-dots menu:
 // View, Edit and Activate / Deactivate (deactivating asks first, in the view).
 export const getRetailersColumns = (actions: RetailerRowActions): DataTableColumn<RetailerItem>[] => [
   {
@@ -68,26 +76,36 @@ export const getRetailersColumns = (actions: RetailerRowActions): DataTableColum
     cell: (r) => {
       const pending = actions.pendingId === r.id;
       return (
-        <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/retailers/${r.id}`} />}>
-            <EyeIcon data-icon="inline-start" />
-            View
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => actions.onEdit(r)}>
-            <PencilIcon data-icon="inline-start" />
-            Edit
-          </Button>
-          {r.status === "ACTIVE" ? (
-            <Button size="sm" variant="outline" disabled={pending} onClick={() => actions.onDeactivate(r)}>
-              {pending ? <Spinner data-icon="inline-start" /> : <PowerOffIcon data-icon="inline-start" />}
-              Deactivate
-            </Button>
-          ) : (
-            <Button size="sm" variant="accent" disabled={pending} onClick={() => actions.onActivate(r)}>
-              {pending ? <Spinner data-icon="inline-start" /> : <PowerIcon data-icon="inline-start" />}
-              Activate
-            </Button>
-          )}
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button size="icon" variant="ghost" aria-label={`Actions for ${r.name}`} />}>
+              {pending ? <Spinner /> : <MoreVerticalIcon />}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuItem render={<Link href={`/retailers/${r.id}`} />}>
+                  <EyeIcon />
+                  View
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => actions.onEdit(r)}>
+                  <PencilIcon />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {r.status === "ACTIVE" ? (
+                  <DropdownMenuItem variant="destructive" disabled={pending} onClick={() => actions.onDeactivate(r)}>
+                    <PowerOffIcon />
+                    Deactivate
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem disabled={pending} onClick={() => actions.onActivate(r)}>
+                    <PowerIcon />
+                    Activate
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       );
     },

@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DataTable } from "@/components/data-table";
 import { EntityContainer } from "@/components/entity-components/entity-container";
 import { EntityEmptyView } from "@/components/entity-components/entity-empty-view";
@@ -84,14 +83,17 @@ export const RetailersView = () => {
     <div className="flex flex-col gap-3">
       {tabs}
       <div className="flex flex-wrap items-center gap-2">
-        <ToggleGroup variant="outline" aria-label="Status" value={[status]} onValueChange={(v) => v[0] && params.setFilter("status", v[0])}>
-          {RETAILER_FILTERS.map((f) => (
-            <ToggleGroupItem key={f} value={f}>
-              {FILTER_LABELS[f]}
-              {data && <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">{data.counts[f]}</span>}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {/* Status tabs only drive the filter; the table below is shared, so there are no panels. */}
+        <Tabs value={status} onValueChange={(v) => params.setFilter("status", String(v))}>
+          <TabsList aria-label="Status">
+            {RETAILER_FILTERS.map((f) => (
+              <TabsTrigger key={f} value={f}>
+                {FILTER_LABELS[f]}
+                {data && <span className="text-xs text-muted-foreground tabular-nums">{data.counts[f]}</span>}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         {params.hasActiveFilters && <Button variant="ghost" size="sm" onClick={params.clearFilters}>Clear filters</Button>}
         <EntitySearch value={params.searchInput} onChange={params.setSearchInput} placeholder="Search code, name, owner, city or mobile" />
       </div>

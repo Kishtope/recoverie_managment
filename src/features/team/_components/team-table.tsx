@@ -1,8 +1,16 @@
 import { format } from "date-fns";
-import { BanIcon, PencilIcon, RotateCcwIcon } from "lucide-react";
+import { BanIcon, MoreVerticalIcon, PencilIcon, RotateCcwIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import type { DataTableColumn } from "@/components/data-table";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -67,15 +75,32 @@ export const getTeamColumns = ({
           key: "actions",
           header: "",
           cell: (u: TeamUser) => (
-            <div className="flex justify-end gap-2">
-              <Button size="sm" variant="outline" onClick={() => onEdit(u)}>
-                <PencilIcon data-icon="inline-start" />
-                Edit
-              </Button>
-              <Button size="sm" variant="outline" disabled={pendingId === u.id} onClick={() => onToggleStatus(u)}>
-                {pendingId === u.id ? <Spinner data-icon="inline-start" /> : u.status === "ACTIVE" ? <BanIcon data-icon="inline-start" /> : <RotateCcwIcon data-icon="inline-start" />}
-                {u.status === "ACTIVE" ? "Disable" : "Enable"}
-              </Button>
+            <div className="flex justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button size="icon" variant="ghost" aria-label={`Actions for ${u.name}`} />}>
+                  {pendingId === u.id ? <Spinner /> : <MoreVerticalIcon />}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => onEdit(u)}>
+                      <PencilIcon />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {u.status === "ACTIVE" ? (
+                      <DropdownMenuItem variant="destructive" disabled={pendingId === u.id} onClick={() => onToggleStatus(u)}>
+                        <BanIcon />
+                        Disable
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem disabled={pendingId === u.id} onClick={() => onToggleStatus(u)}>
+                        <RotateCcwIcon />
+                        Enable
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ),
         },
