@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/data-table";
 import { EntityContainer } from "@/components/entity-components/entity-container";
 import { EntityEmptyView } from "@/components/entity-components/entity-empty-view";
@@ -79,14 +79,17 @@ export const QuestionsView = () => {
   const toolbar = (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <ToggleGroup variant="outline" aria-label="Status" value={[status]} onValueChange={(v) => v[0] && params.setFilter("status", v[0])}>
-          {QUESTION_FILTERS.map((f) => (
-            <ToggleGroupItem key={f} value={f}>
-              {FILTER_LABELS[f]}
-              {data && <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">{data.counts[f]}</span>}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {/* Status tabs only drive the filter; the list below is shared, so there are no panels. */}
+        <Tabs value={status} onValueChange={(v) => params.setFilter("status", String(v))}>
+          <TabsList aria-label="Status">
+            {QUESTION_FILTERS.map((f) => (
+              <TabsTrigger key={f} value={f}>
+                {FILTER_LABELS[f]}
+                {data && <span className="text-xs text-muted-foreground tabular-nums">{data.counts[f]}</span>}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <FilterSelect ariaLabel="Category" value={category} onChange={(v) => params.setFilter("category", v)} options={CATEGORY_OPTIONS} className="w-52" />
         {params.hasActiveFilters && <Button variant="ghost" size="sm" onClick={params.clearFilters}>Clear filters</Button>}
         <EntitySearch value={params.searchInput} onChange={params.setSearchInput} placeholder="Search question text" />

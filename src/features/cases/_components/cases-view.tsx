@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UsersRoundIcon, WandSparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/data-table";
 import { EntityContainer } from "@/components/entity-components/entity-container";
 import { EntityEmptyView } from "@/components/entity-components/entity-empty-view";
@@ -120,16 +120,14 @@ export const CasesView = () => {
   const toolbar = (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <ToggleGroup
-          variant="outline"
-          aria-label="Case tab"
-          value={[params.filters.stage]}
-          onValueChange={(v) => v[0] && params.setFilter("stage", v[0])}
-        >
-          {STAGE_OPTIONS.map((o) => (
-            <ToggleGroupItem key={o.value} value={o.value}>{o.label}</ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {/* Stage tabs only drive the filter; the table below is shared, so there are no panels. */}
+        <Tabs value={params.filters.stage} onValueChange={(v) => params.setFilter("stage", String(v))}>
+          <TabsList aria-label="Case tab">
+            {STAGE_OPTIONS.map((o) => (
+              <TabsTrigger key={o.value} value={o.value}>{o.label}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <FilterSheet fields={fields} onChange={params.setFilter} onClear={params.clearFilters} description="Narrow the list of cases." />
         {params.hasActiveFilters && <Button variant="ghost" size="sm" onClick={params.clearFilters}>Clear filters</Button>}
         <EntitySearch value={params.searchInput} onChange={params.setSearchInput} placeholder="Search name, agreement, mobile" />
