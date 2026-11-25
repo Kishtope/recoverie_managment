@@ -21,8 +21,7 @@ export const GET = async (req: Request) => {
 
   const where = { AND: [teamLoanWhere(user, q), { status: "ACTIVE" as const }, { overdueAmount: { gt: 0 } }] };
   const total = await prisma.loan.count({ where });
-  // Nothing matches: say so instead of handing over a header-only workbook that looks like a broken export.
-  if (total === 0) return NextResponse.json({ error: "No overdue cases match the current filters, so there is nothing to export." }, { status: 404 });
+  // Nothing matches: the workbook still downloads, with a single row showing 0.
   if (total > MAX_ROWS) {
     return NextResponse.json({ error: `Too many cases to export (${total.toLocaleString("en-IN")}). Narrow the filters to ${MAX_ROWS.toLocaleString("en-IN")} or fewer.` }, { status: 400 });
   }

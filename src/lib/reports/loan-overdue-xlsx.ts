@@ -119,6 +119,11 @@ export const buildLoanOverdueXlsx = async (loans: OverdueLoan[], now: Date, unma
   sheet.addRow([...LOAN_OVERDUE_HEADER]).font = { bold: true };
   const asOf = reportAsOf(now);
   loans.forEach((l, i) => sheet.addRow(toOverdueRow(l, i, asOf, unmask)));
+  // No overdue cases: one row of zeros so the file clearly says "0" instead of looking like a broken export.
+  if (loans.length === 0) {
+    const zero = LOAN_OVERDUE_HEADER.map((title) => (title === "Report As Of (IST)" ? asOf : ["Sr. No.", "Overdue EMI Count", "Overdue Amount", "Total Outstanding"].includes(title) ? 0 : null));
+    sheet.addRow(zero);
+  }
 
   LOAN_OVERDUE_HEADER.forEach((title, i) => {
     const col = sheet.getColumn(i + 1);
