@@ -34,7 +34,7 @@ describe("checkRetailerRows", () => {
     const out = checkRetailerRows(retailerRows("KPD-1", RETAILER_CAP + 3), retailers);
     expect(out.summary.perRetailer).toEqual([{ retailerId: "r1", code: "KPD-1", name: "Retailer 1", customers: RETAILER_CAP, rejected: 3 }]);
     expect(out.errors.map((e) => e.row)).toEqual([21, 22, 23]);
-    expect(out.errors[0].reason).toContain("already has 20");
+    expect(out.errors[0].reason).toContain("only 20");
     expect([...out.retailerIds.values()].every((id) => id === "r1")).toBe(true);
   });
 
@@ -48,8 +48,8 @@ describe("checkRetailerRows", () => {
     const out = checkRetailerRows([...retailerRows(undefined, 1, 1), ...retailerRows("NOPE", 1, 2), ...retailerRows("KPD-3", 1, 3)], retailers);
     expect(out.retailerIds.size).toBe(0);
     expect(out.errors.map((e) => e.reason)).toEqual([
-      "Retailer code is blank (needed for Retailer rows)",
-      'Unknown retailer code "NOPE"',
+      "Retailer Code is blank (needed for Retailer rows)",
+      'Retailer Code "NOPE" is not a known retailer',
       "Retailer KPD-3 is inactive and cannot receive customers",
     ]);
   });

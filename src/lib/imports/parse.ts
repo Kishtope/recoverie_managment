@@ -24,6 +24,9 @@ const cellText = (value: ExcelJS.CellValue | undefined): string => {
   return String(value).trim();
 };
 
+// The hub writes ids and mobiles as ="CDL0000000029" so Excel keeps them as text; strip that wrapper to get the plain value.
+const unwrapText = (text: string) => /^="([\s\S]*)"$/.exec(text)?.[1] ?? text;
+
 // Reads the first sheet of an .xlsx or .csv upload. CSV cells stay raw text (no number/date guessing, so "05-01-2024" is not read as US format).
 export const parseSheet = async (buffer: Buffer, fileName: string): Promise<ParsedSheet> => {
   if (buffer.length > MAX_FILE_BYTES) throw new ImportFileError("File is larger than 10 MB");
@@ -45,7 +48,7 @@ export const parseSheet = async (buffer: Buffer, fileName: string): Promise<Pars
   if (sheet.rowCount - 1 > MAX_ROWS) throw new ImportFileError(`The file has more than ${MAX_ROWS.toLocaleString("en-IN")} rows`);
 
   const width = sheet.columnCount;
-  const read = (n: number) => Array.from({ length: width }, (_, c) => cellText(sheet.getRow(n).getCell(c + 1).value));
+  const read = (n: number) => Array.from({ length: width }, (_, c) => unwrapText(cellText(sheet.getRow(n).getCell(c + 1).value)));
   const headers = read(1);
   const rows: ParsedSheet["rows"] = [];
   for (let n = 2; n <= sheet.rowCount; n++) {

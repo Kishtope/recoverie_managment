@@ -22,11 +22,70 @@ const changes = (current: Record<string, unknown>, patch: Record<string, unknown
 const retailerPatch = (storedRetailerId: string | null, retailerId: string | undefined, importId: string) =>
   retailerId && retailerId !== storedRetailerId ? { retailerId, retailerAssignedOn: new Date(), retailerImportId: importId } : {};
 
+// The two reference contacts of a row as the JSON stored on the customer; undefined (leave as is) when the file has none.
+const buildReferences = (refs: { name?: string; relation?: string; mobile?: string }[]) => {
+  const list = refs.filter((r) => r.name || r.relation || r.mobile).map((r) => ({ name: r.name ?? "", relation: r.relation ?? "", mobile: r.mobile ?? "" }));
+  return list.length ? list : undefined;
+};
+
 // Splits a validated row into the customer part and the loan part (the assignment columns are not stored on the loan).
-/* eslint-disable @typescript-eslint/no-unused-vars -- assignmentType / retailerCode are pulled out only so they stay out of loanFields */
-const split = ({ agreementNo, hubCustomerId, customerName, mobilePrimary, mobileAlt, address, pin, area, assignmentType: _type, retailerCode: _code, ...loanFields }: LoanRow) => ({
+/* eslint-disable @typescript-eslint/no-unused-vars -- assignmentType / retailerCode are and the retailer detail columns are pulled out only so they stay out of loanFields */
+const split = ({
   agreementNo,
-  customer: { hubCustomerId, name: customerName, mobilePrimary, mobileAlt, address, pin, area },
+  hubCustomerId,
+  customerName,
+  mobilePrimary,
+  mobileAlt,
+  address,
+  pin,
+  area,
+  pan,
+  dob,
+  customerState,
+  landmark,
+  residenceType,
+  landlordName,
+  landlordMobile,
+  occupation,
+  workAddress,
+  ref1Name,
+  ref1Relation,
+  ref1Mobile,
+  ref2Name,
+  ref2Relation,
+  ref2Mobile,
+  assignmentType: _type,
+  retailerCode: _code,
+  shopName: _shop,
+  retailerName: _owner,
+  retailerMobile: _retailerMobile,
+  retailerDistrict: _district,
+  retailerState: _retailerState,
+  ...loanFields
+}: LoanRow) => ({
+  agreementNo,
+  customer: {
+    hubCustomerId,
+    name: customerName,
+    mobilePrimary,
+    mobileAlt,
+    address,
+    pin,
+    area,
+    pan,
+    dob,
+    state: customerState,
+    landmark,
+    residenceType,
+    landlordName,
+    landlordMobile,
+    occupation,
+    workAddress,
+    references: buildReferences([
+      { name: ref1Name, relation: ref1Relation, mobile: ref1Mobile },
+      { name: ref2Name, relation: ref2Relation, mobile: ref2Mobile },
+    ]),
+  },
   loan: loanFields,
 });
 

@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { columnLabel, mapColumns } from "@/lib/imports/columns";
+import { columnLabel, mapColumns, type RawRow } from "@/lib/imports/columns";
 import { ImportFileError, MAX_FILE_BYTES, parseSheet } from "@/lib/imports/parse";
 import { executeImport, hasRunningImport, previewLoans, toRunItem } from "@/lib/imports/run";
 import { runAutoAllocation } from "@/lib/allocation-run";
-import { importAutoAllocateSchema, importTypeSchema } from "@/features/imports/schemas";
+import { importAutoAllocateSchema, importCompanySchema, importTypeSchema } from "@/features/imports/schemas";
 import type { ImportUploadResult } from "@/features/imports/types";
 
 // Lists past import runs (without their error lists), newest first, with type/status filters and paging. Admin only.
@@ -66,15 +66,27 @@ export const POST = async (req: Request) => {
     autoAllocate = parsedAlloc.data;
   }
 
-  let rows;
+  let rows: RawRow[];
   try {
     const sheet = await parseSheet(Buffer.from(await file.arrayBuffer()), file.name);
     const mapped = mapColumns(type.data, sheet.headers, sheet.rows);
+    // Real-time check when a file is chosen: only the missing required columns come back, nothing is validated or saved.
+    if (form.get("columns") === "true") return NextResponse.json({ check: { missing: mapped.missing.map((f) => columnLabel(f)), rows: sheet.rows.length } });
     if (mapped.missing.length) {
       const names = mapped.missing.map((f) => columnLabel(f)).join(", ");
-      return NextResponse.json({ error: `Missing required column(s): ${names}` }, { status: 400 });
+      return NextResponse.json({ error: `Your file is missing: ${names}. Add the column(s) and upload again.` }, { status: 400 });
     }
     rows = mapped.rows;
+    // A Customers file may leave out Company and Assignment Type: the company then comes from the upload form and every row is a Retailer row.
+    if (type.data === "LOANS") {
+      const hasColumn = (field: string) => rows.some((r) => field in r.values);
+      if (!hasColumn("company")) {
+        const company = importCompanySchema.safeParse(form.get("company"));
+        if (!company.success) return NextResponse.json({ error: "Choose the company for this file" }, { status: 400 });
+        rows = rows.map((r) => ({ ...r, values: { ...r.values, company: company.data } }));
+      }
+      if (!hasColumn("assignmentType")) rows = rows.map((r) => ({ ...r, values: { ...r.values, assignmentType: "Retailer" } }));
+    }
   } catch (e) {
     if (e instanceof ImportFileError) return NextResponse.json({ error: e.message }, { status: 400 });
     throw e;

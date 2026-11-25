@@ -1,5 +1,9 @@
 // Branches a user can be given access to; a plain list so a new branch needs no migration.
-export const BRANCHES = ["Khairlanji", "Balaghat", "Mandla", "Chhindwara", "Raipur", "Seoni", "Baihar"] as const;
+export const BRANCHES = [
+  "Khairlanji", "Balaghat", "Mandla", "Chhindwara", "Raipur", "Seoni", "Baihar",
+  // Branches that appear in the hub's Loan Overdue export.
+  "Anuppur", "Bastar", "Betul", "Bijapur(CGH)", "Bilaspur(CGH)", "Bokaro", "Chatra", "Dantewada", "Dewas", "Dhamtari", "Dhanbad", "Dindori", "Durg", "Giridh", "Gumla", "Harda", "Hazaribag", "Indore", "Jabalpur", "Jashpur", "Kanker", "Katni", "Kawardha", "Korba", "Koriya", "Lohardaga", "Mahasamund", "Narsinghpur", "Raigarh", "Rajgarh", "Rajnandgaon", "Ramgarh", "Ranchi", "Rewa", "Satna", "Shahdol", "Sidhi", "Surguja", "Ujjain",
+] as const;
 
 // Lending companies a user can be given access to (mirrors the Prisma `Company` enum).
 export const COMPANIES = ["AF", "BLD", "MF", "MMPL"] as const;

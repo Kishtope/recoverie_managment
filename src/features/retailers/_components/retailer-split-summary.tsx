@@ -6,7 +6,7 @@ import type { RetailerImportSummary } from "../types";
 
 type Row = RetailerImportSummary["perRetailer"][number];
 
-// One row per retailer named in the file: how many customers it takes (out of the 20 allowed) and how many rows were turned away.
+// One row per retailer named in the file: how many customers it takes and how many rows were turned away.
 const columns: DataTableColumn<Row>[] = [
   {
     key: "retailer",
@@ -29,15 +29,20 @@ const columns: DataTableColumn<Row>[] = [
 
 /**
  * @component RetailerSplitSummary
- * @description How a Customers file splits between Callers and Retailers, with a retailer-wise table (customers taken out of the 20 allowed, rows
- * rejected). Used by the upload preview and by the summary of a finished import.
+ * @description How a Customers file splits between Callers and Retailers, with a retailer-wise table (customers taken, rows rejected). Used by the upload preview (counts only, `showRetailers={false}`) and by the summary of a finished import.
  */
-export const RetailerSplitSummary = ({ summary, className }: { summary: RetailerImportSummary; className?: string }) => (
+export const RetailerSplitSummary = ({ summary, className, showRetailers = true }: { summary: RetailerImportSummary; className?: string; showRetailers?: boolean }) => (
   <div className={cn("flex flex-col gap-3", className)}>
     <p className="text-sm">
       <span className="font-medium tabular-nums">{summary.caller.toLocaleString("en-IN")}</span> caller customers ·{" "}
       <span className="font-medium tabular-nums">{summary.retailer.toLocaleString("en-IN")}</span> retailer customers
+      {!!summary.created && (
+        <>
+          {" "}
+          · <span className="font-medium tabular-nums">{summary.created.toLocaleString("en-IN")}</span> new retailers
+        </>
+      )}
     </p>
-    {summary.perRetailer.length > 0 && <DataTable columns={columns} rows={summary.perRetailer} getRowKey={(r) => r.retailerId} />}
+    {showRetailers && summary.perRetailer.length > 0 && <DataTable columns={columns} rows={summary.perRetailer} getRowKey={(r) => r.retailerId} />}
   </div>
 );

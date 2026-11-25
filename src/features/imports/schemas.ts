@@ -39,13 +39,16 @@ const matchList = (list: readonly string[]) => (v: string) => list.find((x) => x
 export const importAutoAllocateSchema = autoAllocateSchema.omit({ dryRun: true });
 export type ImportAutoAllocateInput = z.input<typeof importAutoAllocateSchema>;
 
+// Company chosen in the upload form for a file that has no Company column.
+export const importCompanySchema = z.enum(COMPANIES);
+
 // One row of the Loans file (customer + loan). Branch/company must be known so access filters never break.
 export const loanRowSchema = z.object({
-  agreementNo: z.string().trim().min(1, "Agreement no. is blank"),
+  agreementNo: z.string().trim().min(1, "is blank (every row needs one)"),
   hubCustomerId: text,
-  customerName: z.string().trim().min(1, "Customer name is blank"),
-  mobilePrimary: parsed(parseMobile, "Invalid mobile (need 10 digits)"),
-  mobileAlt: parsed(parseMobile, "Invalid alternate mobile (need 10 digits)"),
+  customerName: z.string().trim().min(1, "is blank (every row needs one)"),
+  mobilePrimary: parsed(parseMobile, "must be a 10-digit number"),
+  mobileAlt: parsed(parseMobile, "must be a 10-digit number"),
   address: text,
   pin: text,
   area: text,
@@ -54,7 +57,7 @@ export const loanRowSchema = z.object({
     .trim()
     .transform((v, ctx) => {
       const hit = matchList(COMPANIES)(v);
-      if (!hit) ctx.issues.push({ code: "custom", message: `Unknown company "${v}"`, input: v });
+      if (!hit) ctx.issues.push({ code: "custom", message: `"${v}" is not recognised (use AF, BLD, MF or MMPL)`, input: v });
       return (hit ?? z.NEVER) as (typeof COMPANIES)[number];
     }),
   branch: z
@@ -62,29 +65,71 @@ export const loanRowSchema = z.object({
     .trim()
     .transform((v, ctx) => {
       const hit = matchList(BRANCHES)(v);
-      if (!hit) ctx.issues.push({ code: "custom", message: `Unknown branch "${v}" (add it to BRANCHES first)`, input: v });
+      if (!hit) ctx.issues.push({ code: "custom", message: v ? `"${v}" is not set up in the app (ask an Admin to add it)` : "is blank (fill the Branch / Assigned Branch column)", input: v });
       return hit ?? z.NEVER;
     }),
-  disbursedOn: parsed(parseHubDate, "Invalid disbursed date"),
-  emiAmount: parsed(parseAmount, "Invalid EMI amount"),
-  pendingEmis: parsed(parseCount, "Pending EMIs must be a whole number"),
-  dpd: parsed(parseCount, "DPD must be a whole number"),
-  overdueAmount: parsed(parseAmount, "Invalid overdue amount"),
-  status: parsed((v) => (matchList(["ACTIVE", "CLOSED"])(v) as "ACTIVE" | "CLOSED" | null), "Status must be Active or Closed"),
+  disbursedOn: parsed(parseHubDate, "is not a valid date (use dd-mm-yyyy)"),
+  emiAmount: parsed(parseAmount, "must be a number"),
+  pendingEmis: parsed(parseCount, "must be a whole number"),
+  dpd: parsed(parseCount, "must be a whole number"),
+  overdueAmount: parsed(parseAmount, "must be a number"),
+  // The hub calls a running loan "DISBURSED"; that is an ACTIVE loan here.
+  status: parsed((v) => (matchList(["ACTIVE", "CLOSED"])(v === v.toUpperCase() && v.toLowerCase() === "disbursed" ? "ACTIVE" : v) as "ACTIVE" | "CLOSED" | null), "must be Active or Closed"),
+  applicationNo: text,
+  agreementDate: parsed(parseHubDate, "is not a valid date (use dd-mm-yyyy)"),
+  brand: text,
+  productName: text,
+  lockStatus: text,
+  lockStatusAt: text,
+  schemeName: text,
+  loanAmount: parsed(parseAmount, "must be a number"),
+  totalRepaymentAmount: parsed(parseAmount, "must be a number"),
+  tenureMonths: parsed(parseCount, "must be a whole number"),
+  roi: parsed(parseAmount, "must be a number"),
+  oldestOverdueEmiNo: parsed(parseCount, "must be a whole number"),
+  oldestOverdueOn: parsed(parseHubDate, "is not a valid date (use dd-mm-yyyy)"),
+  penaltyCharges: parsed(parseAmount, "must be a number"),
+  otherDueCharges: parsed(parseAmount, "must be a number"),
+  totalOutstanding: parsed(parseAmount, "must be a number"),
+  totalPaid: parsed(parseAmount, "must be a number"),
+  lastPaymentOn: parsed(parseHubDate, "is not a valid date (use dd-mm-yyyy)"),
+  // Customer details (stored on the customer, not the loan).
+  pan: text,
+  dob: parsed(parseHubDate, "is not a valid date (use dd-mm-yyyy)"),
+  customerState: text,
+  landmark: text,
+  residenceType: text,
+  landlordName: text,
+  landlordMobile: text,
+  occupation: text,
+  workAddress: text,
+  ref1Name: text,
+  ref1Relation: text,
+  ref1Mobile: text,
+  ref2Name: text,
+  ref2Relation: text,
+  ref2Mobile: text,
+  // Caller or Retailer decides which workflow the customer follows; a Retailer row also needs a retailer code (checked against the retailers later).
   // Caller or Retailer decides which workflow the customer follows; a Retailer row also needs a retailer code (checked against the retailers later).
   assignmentType: z
     .string()
     .trim()
     .transform((v, ctx) => {
       if (!v) {
-        ctx.issues.push({ code: "custom", message: "Assignment type is blank (Caller or Retailer)", input: v });
+        ctx.issues.push({ code: "custom", message: "is blank (use Caller or Retailer)", input: v });
         return z.NEVER;
       }
       const hit = matchList(["CALLER", "RETAILER"])(v) as "CALLER" | "RETAILER" | null;
-      if (!hit) ctx.issues.push({ code: "custom", message: `Assignment type "${v}" must be Caller or Retailer`, input: v });
+      if (!hit) ctx.issues.push({ code: "custom", message: `"${v}" is not valid (use Caller or Retailer)`, input: v });
       return hit ?? z.NEVER;
     }),
   retailerCode: text,
+  // Retailer details, used only to create a retailer that does not exist yet.
+  shopName: text,
+  retailerName: text,
+  retailerMobile: text,
+  retailerDistrict: text,
+  retailerState: text,
 });
 export type LoanRow = z.infer<typeof loanRowSchema>;
 
@@ -132,8 +177,19 @@ export type PaymentRow = z.infer<typeof paymentRowSchema>;
 export const importTypeSchema = z.enum(["LOANS", "ALLOCATIONS", "PAYMENTS"], { error: "Choose Loans, Allocations or Payments" });
 
 // First problem of a failed row as "field: message" for the error report.
+// Column names as the Admin sees them in the hub file, used to point at the cell a row error is about.
+const COLUMN_LABELS: Record<string, string> = {
+  agreementNo: "Loan Account Number", customerName: "Customer Name", mobilePrimary: "Customer Mobile", mobileAlt: "Alternate Mobile", company: "Company", branch: "Branch",
+  assignmentType: "Assignment Type", disbursedOn: "Disbursed Date", agreementDate: "Agreement Date", emiAmount: "EMI Amount", pendingEmis: "Overdue EMI Count", dpd: "DPD",
+  overdueAmount: "Overdue Amount", status: "Loan Status", loanAmount: "Loan Amount", totalRepaymentAmount: "Total Repayment Amount", tenureMonths: "Tenure (Months)",
+  roi: "ROI (%)", oldestOverdueEmiNo: "Oldest Overdue EMI Number", oldestOverdueOn: "Oldest Overdue Date", penaltyCharges: "Penalty Charges",
+  otherDueCharges: "Other Due Charges", totalOutstanding: "Total Outstanding", totalPaid: "Total Paid", lastPaymentOn: "Last Payment Date", dob: "Date of Birth",
+};
+
+// Turns the first problem of a row into a plain sentence naming the column, e.g. "Branch is blank (fill the Branch column)".
 export const describeIssue = (error: z.ZodError) => {
   const issue = error.issues[0];
   const field = issue.path.join(".");
-  return field ? `${field}: ${issue.message}` : issue.message;
+  const label = COLUMN_LABELS[field];
+  return label ? `${label} ${issue.message}` : field ? `${field}: ${issue.message}` : issue.message;
 };

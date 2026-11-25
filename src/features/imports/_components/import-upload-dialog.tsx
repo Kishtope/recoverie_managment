@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { DownloadIcon, UploadIcon } from "lucide-react";
+import { CircleCheckIcon, TriangleAlertIcon, UploadIcon } from "lucide-react";
 import { FormDialog } from "@/components/form-dialog";
 import { FormSelect } from "@/components/form-select";
 import { MultiCombobox } from "@/components/multi-combobox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -12,15 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { RetailerSplitSummary } from "@/features/retailers/_components/retailer-split-summary";
 import { useScopeAgents } from "@/features/team/hooks/use-scope-agents";
+import { COMPANIES } from "@/lib/constants";
 import { ALLOCATION_RULES, ALLOCATION_RULE_LABELS, type AllocationRule } from "@/lib/allocation-plan";
 import { cn } from "@/lib/utils";
+import { useCheckImportColumns } from "../hooks/use-check-import-columns";
 import { usePreviewImport } from "../hooks/use-preview-import";
 import { useUploadImport } from "../hooks/use-upload-import";
+import { ImportErrorList } from "./import-error-list";
 import { ImportSummary } from "./import-summary";
-
-// Columns a customers file must have; the rest are optional (a blank cell leaves the stored value as it is).
-// Retailer Code is also needed on every row whose Assignment Type is Retailer.
-const REQUIRED_COLUMNS = "Agreement No, Customer Name, Company, Branch, Assignment Type";
 
 // One number of the preview with its label; `danger` outlines it when there are errors.
 const PreviewStat = ({ label, value, danger }: { label: string; value: number; danger?: boolean }) => (
@@ -49,8 +50,11 @@ export const ImportUploadDialog = ({
 }) => {
   const { mutate, isPending, data, reset } = useUploadImport();
   const { mutate: check, isPending: checking, data: preview, reset: resetPreview } = usePreviewImport();
+  const { mutate: checkColumns, isPending: checkingColumns, data: columns, reset: resetColumns } = useCheckImportColumns();
   const { data: agents, isPending: loadingAgents } = useScopeAgents(open);
   const [file, setFile] = useState<File | null>(null);
+  // Company for a file that has no Company column.
+  const [company, setCompany] = useState<string>(COMPANIES[0]);
   // Auto-allocation choice: on/off, the rule and the callers to split the new cases between.
   const [allocate, setAllocate] = useState(false);
   const [rule, setRule] = useState<AllocationRule>("EQUAL");
@@ -59,7 +63,8 @@ export const ImportUploadDialog = ({
 
   // The button works once a file is chosen (and callers, when auto-allocate is on); after a check it needs at least one valid row to save.
   const busy = isPending || checking;
-  const canSubmit = !!file && !busy && (!allocate || people.length > 0) && !(preview && preview.valid === 0);
+  const missingColumns = columns?.missing ?? [];
+  const canSubmit = !!file && !busy && !checkingColumns && !!columns && missingColumns.length === 0 && (!allocate || people.length > 0) && !(preview && preview.valid === 0);
 
   // Forgets the file, the choices and the last result so the next open starts clean.
   const handleOpenChange = (next: boolean) => {
@@ -67,24 +72,28 @@ export const ImportUploadDialog = ({
     if (!next) {
       setFile(null);
       setAllocate(false);
+      setCompany(COMPANIES[0]);
       setRule("EQUAL");
       setPeople([]);
       reset();
       resetPreview();
+      resetColumns();
     }
     onOpenChange(next);
   };
 
-  // Sends the file for real; clears the picker once the import is done so the same file is not uploaded twice by accident.
+  // Sends the file for real; clears the picker once the import is done so the same file is not uploaded twice by accident, then closes the dialog when nothing needs reading.
   const submit = () => {
     if (!file) return;
     mutate(
-      { file, autoAllocate: allocate ? { rule, agentIds: people } : undefined },
+      { file, company, autoAllocate: allocate ? { rule, agentIds: people } : undefined },
       {
-        onSuccess: () => {
+        onSuccess: ({ run, allocationError }) => {
           setFile(null);
           resetPreview();
           if (inputRef.current) inputRef.current.value = "";
+          // A clean import just closes (the toast says what happened); with rejected rows or an allocation problem the summary stays open to read.
+          if (!run.failed && !allocationError) handleOpenChange(false);
         },
       },
     );
@@ -95,7 +104,7 @@ export const ImportUploadDialog = ({
   const checkAndUpload = () => {
     if (!file) return;
     if (preview) return submit();
-    check({ file }, { onSuccess: (result) => result.invalid === 0 && result.valid > 0 && submit() });
+    check({ file, company }, { onSuccess: (result) => result.invalid === 0 && result.valid > 0 && submit() });
   };
 
   // The button just says Upload (Uploading… while the check or the import runs); the check step is invisible when the file is clean.
@@ -106,7 +115,7 @@ export const ImportUploadDialog = ({
       open={open}
       onOpenChange={handleOpenChange}
       title="Upload customers"
-      description="Import customer details from an Excel or CSV file. Each row says Caller or Retailer; Retailer rows go to the retailer named by their Retailer Code (at most 20 per retailer). The file is checked first; if every row is valid it uploads right away, otherwise you review the errors first."
+      description="Import customer details from an Excel or CSV file."
       footer={
         <>
           <Button type="button" variant="outline" disabled={isPending || checking} onClick={() => handleOpenChange(false)}>
@@ -130,17 +139,46 @@ export const ImportUploadDialog = ({
               accept=".xlsx,.csv"
               disabled={isPending || checking}
               onChange={(e) => {
-                setFile(e.target.files?.[0] ?? null);
+                const chosen = e.target.files?.[0] ?? null;
+                setFile(chosen);
                 resetPreview(); // a different file needs its own check
+                resetColumns();
+                if (chosen) checkColumns({ file: chosen }); // list the missing columns right away
               }}
             />
-            <FieldDescription>Required columns: {REQUIRED_COLUMNS}. Retailer rows also need a Retailer Code.</FieldDescription>
-            <div>
-              <Button type="button" variant="ghost" size="sm" nativeButton={false} render={<a href="/templates/loans.csv" download />}>
-                <DownloadIcon data-icon="inline-start" />
-                Download template
-              </Button>
-            </div>
+            <FieldDescription>Excel or CSV. Its columns are checked as soon as you choose it.</FieldDescription>
+            {checkingColumns && (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+                <Spinner /> Checking columns…
+              </p>
+            )}
+            {missingColumns.length > 0 && (
+              <Alert variant="destructive">
+                <TriangleAlertIcon />
+                <AlertTitle>{missingColumns.length === 1 ? "1 column is missing" : `${missingColumns.length} columns are missing`}</AlertTitle>
+                <AlertDescription>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {missingColumns.map((name) => (
+                      <Badge key={name} variant="outline">
+                        {name}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="mt-2">Add {missingColumns.length === 1 ? "it" : "them"} to the file and choose it again.</p>
+                </AlertDescription>
+              </Alert>
+            )}
+            {columns && missingColumns.length === 0 && (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+                <CircleCheckIcon className="size-4" /> All required columns found · {columns.rows.toLocaleString("en-IN")} rows
+              </p>
+            )}
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="import-company">Company</FieldLabel>
+            <FormSelect id="import-company" value={company} disabled={busy} onChange={(v) => { setCompany(v); resetPreview(); }} options={COMPANIES.map((c) => ({ value: c, label: c }))} />
+            <FieldDescription>Used only when the file has no Company column.</FieldDescription>
           </Field>
 
           <Field orientation="horizontal">
@@ -184,21 +222,8 @@ export const ImportUploadDialog = ({
               <PreviewStat label="Valid" value={preview.valid} />
               <PreviewStat label="Invalid" value={preview.invalid} danger={preview.invalid > 0} />
             </div>
-            <RetailerSplitSummary summary={preview.retailers} />
-            {preview.errors.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <h3 className="text-base">{preview.invalid > preview.errors.length ? `First ${preview.errors.length} of ${preview.invalid} errors` : "Errors"}</h3>
-                <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto rounded-[14px] border border-border p-3 text-sm">
-                  {preview.errors.map((e) => (
-                    <li key={e.row}>
-                      <span className="font-medium tabular-nums">Row {e.row}</span>
-                      {e.agreementNo ? ` (${e.agreementNo})` : ""}: {e.reason}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-xs text-muted-foreground">Rows with errors are skipped; the valid rows are saved when you upload.</p>
-              </div>
-            )}
+            <RetailerSplitSummary summary={preview.retailers} showRetailers={false} />
+            {preview.errors.length > 0 && <ImportErrorList errors={preview.errors} total={preview.invalid} />}
             {preview.valid === 0 && <p className="text-sm text-destructive">No row can be saved. Fix the file and choose it again.</p>}
           </div>
         )}

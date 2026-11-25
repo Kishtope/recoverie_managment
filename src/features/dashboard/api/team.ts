@@ -23,5 +23,8 @@ export const getTeamCharts = async (filters: TeamFilters) => {
   return data;
 };
 
+// Downloads every overdue case in the hub's 53-column Loan Overdue format (company / branch / agency / agent / DPD filters apply).
+export const downloadLoanOverdue = (filters: TeamFilters) => fetchFile("/dashboard/overdue-export", filters, "KishtoPe_Loan_Overdue.xlsx");
+
 // Downloads the whole user-wise recovery table (all agents, current filters and sort) as an Excel file.
 export const downloadTeamUsers = (filters: TeamFilters & { sort: string }) => fetchFile("/dashboard/users/export", filters, "recovery.xlsx");

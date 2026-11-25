@@ -28,27 +28,27 @@ enum Company {
 }
 
 model User {
-  id           String        @id @default(cuid())
+  id           String             @id @default(cuid())
   name         String
-  email        String?       @unique
-  mobile       String?       @unique
+  email        String?            @unique
+  mobile       String?            @unique
   passwordHash String
-  role         Role          @default(AGENT)
-  status       UserStatus    @default(ACTIVE)
+  role         Role               @default(AGENT)
+  status       UserStatus         @default(ACTIVE)
   agencyId     String?
-  agency       Agency?       @relation("AgencyMembers", fields: [agencyId], references: [id])
+  agency       Agency?            @relation("AgencyMembers", fields: [agencyId], references: [id])
   reportsToId  String?
-  reportsTo    User?         @relation("ReportsTo", fields: [reportsToId], references: [id])
-  reports      User[]        @relation("ReportsTo")
+  reportsTo    User?              @relation("ReportsTo", fields: [reportsToId], references: [id])
+  reports      User[]             @relation("ReportsTo")
   lastLoginAt  DateTime?
   access       UserAccess[]
-  ownedAgency  Agency?       @relation("AgencyOwner")
-  allocations  Allocation[]  @relation("AgentAllocations")
-  dispositions Disposition[] @relation("AgentDispositions")
+  ownedAgency  Agency?            @relation("AgencyOwner")
+  allocations  Allocation[]       @relation("AgentAllocations")
+  dispositions Disposition[]      @relation("AgentDispositions")
   questions    CustomerQuestion[] @relation("QuestionCreator")
-  calls        Call[]        @relation("AgentCalls")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  calls        Call[]             @relation("AgentCalls")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 }
 
 model UserAccess {
@@ -115,6 +115,16 @@ model Customer {
   retailer           Retailer? @relation(fields: [retailerId], references: [id])
   retailerAssignedOn DateTime?
   retailerImportId   String? // the upload (ImportRun) whose Retailer Code gave this customer to the retailer
+  // KYC and home details from the hub's Loan Overdue file; only used for the Loan Overdue Excel download.
+  pan                String?
+  dob                DateTime? @db.Date
+  state              String?
+  landmark           String?
+  residenceType      String?
+  landlordName       String?
+  landlordMobile     String?
+  occupation         String?
+  workAddress        String?   @db.Text
   loans              Loan[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -123,22 +133,41 @@ model Customer {
 }
 
 model Loan {
-  id            String       @id @default(cuid())
-  agreementNo   String       @unique
-  customerId    String
-  customer      Customer     @relation(fields: [customerId], references: [id])
-  company       Company
-  branch        String // validated against BRANCHES on import
-  disbursedOn   DateTime?    @db.Date
-  emiAmount     Decimal?     @db.Decimal(12, 2)
-  pendingEmis   Int?
-  dpd           Int?
-  overdueAmount Decimal?     @db.Decimal(12, 2)
-  status        LoanStatus   @default(ACTIVE)
-  allocations   Allocation[]
-  lastImportId  String? // the ImportRun that last changed this loan
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  agreementNo          String       @unique
+  customerId           String
+  customer             Customer     @relation(fields: [customerId], references: [id])
+  company              Company
+  branch               String // validated against BRANCHES on import
+  disbursedOn          DateTime?    @db.Date
+  emiAmount            Decimal?     @db.Decimal(12, 2)
+  pendingEmis          Int?
+  dpd                  Int?
+  overdueAmount        Decimal?     @db.Decimal(12, 2)
+  status               LoanStatus   @default(ACTIVE)
+  // Loan terms and dues from the hub's Loan Overdue file; only used for the Loan Overdue Excel download.
+  applicationNo        String?
+  agreementDate        DateTime?    @db.Date
+  brand                String?
+  productName          String?
+  lockStatus           String?
+  lockStatusAt         String? // kept as the hub's text, e.g. "23 Nov 2026 06:11 PM"
+  schemeName           String?
+  loanAmount           Decimal?     @db.Decimal(12, 2)
+  totalRepaymentAmount Decimal?     @db.Decimal(12, 2)
+  tenureMonths         Int?
+  roi                  Decimal?     @db.Decimal(5, 2)
+  oldestOverdueEmiNo   Int?
+  oldestOverdueOn      DateTime?    @db.Date
+  penaltyCharges       Decimal?     @db.Decimal(12, 2)
+  otherDueCharges      Decimal?     @db.Decimal(12, 2)
+  totalOutstanding     Decimal?     @db.Decimal(12, 2)
+  totalPaid            Decimal?     @db.Decimal(12, 2)
+  lastPaymentOn        DateTime?    @db.Date
+  allocations          Allocation[]
+  lastImportId         String? // the ImportRun that last changed this loan
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   // Latest follow-up state, kept in step with Disposition in one transaction so lists need no per-row subquery.
   lastOutcome       Outcome?
@@ -212,29 +241,29 @@ enum Outcome {
 
 // One recorded conversation outcome on a loan; never edited or deleted (a mistake is fixed by adding a new one).
 model Disposition {
-  id             String    @id @default(cuid())
-  loanId         String
-  loan           Loan      @relation(fields: [loanId], references: [id])
-  agentId        String
-  agent          User      @relation("AgentDispositions", fields: [agentId], references: [id])
-  callId         String?   @unique // the call this outcome was recorded for (one call = one outcome); null for outcomes without a call
-  call           Call?     @relation(fields: [callId], references: [id])
-  outcome        Outcome
-  ptpDate        DateTime? @db.Date
-  ptpAmount      Decimal?  @db.Decimal(12, 2)
-  paidAmount     Decimal?  @db.Decimal(12, 2) // agent-reported; the Phase 4 payments import becomes the source of truth
-  nextFollowUpOn DateTime? @db.Date
-  remarks        String?   @db.Text
+  id              String                @id @default(cuid())
+  loanId          String
+  loan            Loan                  @relation(fields: [loanId], references: [id])
+  agentId         String
+  agent           User                  @relation("AgentDispositions", fields: [agentId], references: [id])
+  callId          String?               @unique // the call this outcome was recorded for (one call = one outcome); null for outcomes without a call
+  call            Call?                 @relation(fields: [callId], references: [id])
+  outcome         Outcome
+  ptpDate         DateTime?             @db.Date
+  ptpAmount       Decimal?              @db.Decimal(12, 2)
+  paidAmount      Decimal?              @db.Decimal(12, 2) // agent-reported; the Phase 4 payments import becomes the source of truth
+  nextFollowUpOn  DateTime?             @db.Date
+  remarks         String?               @db.Text
   // Outcome-specific details. Which ones are filled depends on the outcome (see buildDispositionSchema); all are null for older rows.
-  outcomeDetail   String?   @db.VarChar(20) // NO_ANSWER | BUSY (under NOT_REACHABLE), REFUSED | DISPUTE (under REFUSED_DISPUTE)
-  paymentDate     DateTime? @db.Date // PAID / PART_PAID: the day the customer says the money was paid
-  transactionRef  String?   @db.VarChar(100) // PAID: UPI / bank reference
-  remainingAmount Decimal?  @db.Decimal(12, 2) // PART_PAID: overdue amount still unpaid when this was saved
-  callbackTime    String?   @db.VarChar(5) // CALLBACK: "HH:mm" the customer asked to be called at (the date is nextFollowUpOn)
-  reason          String?   @db.VarChar(500) // CALLBACK reason, refusal reason or dispute description
-  category        String?   @db.VarChar(40) // DISPUTE category
+  outcomeDetail   String?               @db.VarChar(20) // NO_ANSWER | BUSY (under NOT_REACHABLE), REFUSED | DISPUTE (under REFUSED_DISPUTE)
+  paymentDate     DateTime?             @db.Date // PAID / PART_PAID: the day the customer says the money was paid
+  transactionRef  String?               @db.VarChar(100) // PAID: UPI / bank reference
+  remainingAmount Decimal?              @db.Decimal(12, 2) // PART_PAID: overdue amount still unpaid when this was saved
+  callbackTime    String?               @db.VarChar(5) // CALLBACK: "HH:mm" the customer asked to be called at (the date is nextFollowUpOn)
+  reason          String?               @db.VarChar(500) // CALLBACK reason, refusal reason or dispute description
+  category        String?               @db.VarChar(40) // DISPUTE category
   responses       InteractionResponse[]
-  createdAt      DateTime  @default(now())
+  createdAt       DateTime              @default(now())
 
   @@index([loanId, createdAt])
   @@index([agentId, createdAt])
@@ -448,6 +477,7 @@ model Retailer {
   email       String?
   address     String?        @db.Text
   city        String?
+  state       String?
   status      RetailerStatus @default(ACTIVE)
   customers   Customer[]
   createdById String?

@@ -22,23 +22,23 @@ export const hasRunningImport = async () =>
 // Validates every row with its zod schema; rows that fail, or repeat an agreement no. already seen in the file, become errors.
 export const validate = <T extends { agreementNo: string }>(
   rows: RawRow[],
-  parse: (values: Record<string, string>) => { data?: T; error?: string },
+  parse: (values: Record<string, string>) => { data?: T; error?: string; field?: string },
   // Payments files repeat an agreement no. (one row per payment); Loans / Allocations files must not.
   allowRepeats = false,
 ): { valid: { row: number; data: T }[]; errors: ImportRowError[] } => {
   const valid: { row: number; data: T }[] = [];
   const errors: ImportRowError[] = [];
   const seen = new Map<string, number>();
-  for (const { row, values } of rows) {
+  for (const { row, values, columns } of rows) {
     const agreementNo = values.agreementNo?.trim() || null;
     const result = parse(values);
     if (!result.data) {
-      errors.push({ row, agreementNo, reason: result.error ?? "Invalid row" });
+      errors.push({ row, agreementNo, reason: result.error ?? "Invalid row", column: result.field ? columns?.[result.field] : undefined });
       continue;
     }
     const first = allowRepeats ? undefined : seen.get(result.data.agreementNo);
     if (first !== undefined) {
-      errors.push({ row, agreementNo, reason: `Duplicate agreement no. in this file (first on row ${first})` });
+      errors.push({ row, agreementNo, reason: `Loan Account Number is repeated in this file (first on row ${first})`, column: columns?.agreementNo });
       continue;
     }
     seen.set(result.data.agreementNo, row);
@@ -47,28 +47,71 @@ export const validate = <T extends { agreementNo: string }>(
   return { valid, errors };
 };
 
+// Prefix of the temporary id given to a retailer that is not in the database yet; swapped for the real id when it is created.
+const NEW_PREFIX = "new:";
+type NewRetailer = { id: string; code: string; name: string; ownerName: string; mobile: string; city?: string; state?: string };
+
+// Creates the retailers a file introduced and returns the rows and the summary with their real retailer ids.
+const createNewRetailers = async (valid: ValidLoanRow[], newRetailers: NewRetailer[], summary: RetailerImportSummary) => {
+  if (!newRetailers.length) return { valid, summary };
+  await prisma.retailer.createMany({
+    data: newRetailers.map((n) => ({ code: n.code, name: n.name, ownerName: n.ownerName, mobile: n.mobile, city: n.city, state: n.state, status: "ACTIVE" as const })),
+    skipDuplicates: true,
+  });
+  const rows = await prisma.retailer.findMany({ where: { code: { in: newRetailers.map((n) => n.code) } }, select: { id: true, code: true } });
+  const idByTemp = new Map(newRetailers.map((n) => [n.id, rows.find((r) => r.code.toUpperCase() === n.code.toUpperCase())?.id]));
+  const real = (id: string) => (id.startsWith(NEW_PREFIX) ? (idByTemp.get(id) ?? id) : id);
+  return {
+    valid: valid.map((r) => (r.retailerId ? { ...r, retailerId: real(r.retailerId) } : r)),
+    summary: { ...summary, perRetailer: summary.perRetailer.map((p) => ({ ...p, retailerId: real(p.retailerId) })) },
+  };
+};
+
 // Validates a Loans file without writing anything: every row against its schema, then the retailer rules (known active code, at most 20 per retailer).
 // Rows that pass carry the retailer they were mapped to. Used by both the preview and the real import so the two always agree.
 export const prepareLoans = async (rows: RawRow[]) => {
   const v = validate(rows, (values) => {
     const r = loanRowSchema.safeParse(values);
-    return r.success ? { data: r.data } : { error: describeIssue(r.error) };
+    return r.success ? { data: r.data } : { error: describeIssue(r.error), field: String(r.error.issues[0]?.path[0] ?? "") };
   });
-  const retailers = await prisma.retailer.findMany({ select: { id: true, code: true, name: true, status: true } });
+  const known = await prisma.retailer.findMany({ select: { id: true, code: true, name: true, status: true } });
+  // Retailer codes the file names that do not exist yet become new retailers (built from the row's retailer columns) when the import runs.
+  const knownCodes = new Set(known.map((r) => r.code.trim().toUpperCase()));
+  const toCreate = new Map<string, NewRetailer>();
+  for (const { data } of v.valid) {
+    const code = data.assignmentType === "RETAILER" ? data.retailerCode?.trim() : undefined;
+    if (!code || knownCodes.has(code.toUpperCase()) || toCreate.has(code.toUpperCase())) continue;
+    toCreate.set(code.toUpperCase(), {
+      id: `${NEW_PREFIX}${code}`,
+      code,
+      name: data.shopName ?? code,
+      ownerName: data.retailerName ?? "-",
+      mobile: data.retailerMobile ?? "-",
+      city: data.retailerDistrict,
+      state: data.retailerState,
+    });
+  }
+  const retailers = [...known, ...[...toCreate.values()].map((n) => ({ id: n.id, code: n.code, name: n.name, status: "ACTIVE" as const }))];
   const check = checkRetailerRows(
     v.valid.map(({ row, data }) => ({ row, agreementNo: data.agreementNo, assignmentType: data.assignmentType, retailerCode: data.retailerCode })),
     retailers,
   );
   const rejected = new Set(check.errors.map((e) => e.row));
   const valid: ValidLoanRow[] = v.valid.filter((r) => !rejected.has(r.row)).map((r) => ({ ...r, retailerId: check.retailerIds.get(r.row) }));
-  const errors = [...v.errors, ...check.errors].sort((a, b) => a.row - b.row);
-  return { valid, errors, summary: check.summary };
+  // Retailer problems are about the Retailer Code cell of that row.
+  const codeColumn = new Map(rows.map((r) => [r.row, r.columns?.retailerCode]));
+  const retailerErrors = check.errors.map((e) => ({ ...e, column: codeColumn.get(e.row) }));
+  const errors = [...v.errors, ...retailerErrors].sort((a, b) => a.row - b.row);
+  // Only retailers that kept at least one row are created.
+  const used = new Set(valid.map((r) => r.retailerId));
+  const newRetailers = [...toCreate.values()].filter((n) => used.has(n.id));
+  return { valid, errors, newRetailers, summary: { ...check.summary, created: newRetailers.length } };
 };
 
-// The numbers an Admin reviews before confirming a Loans upload (nothing is saved). `errors` is cut to the first 100 rows.
+// The numbers an Admin reviews before confirming a Loans upload (nothing is saved). `errors` is cut to the first 1,000 rows.
 export const previewLoans = async (rows: RawRow[]): Promise<ImportPreview> => {
   const { valid, errors, summary } = await prepareLoans(rows);
-  return { totalRows: rows.length, valid: valid.length, invalid: errors.length, retailers: summary, errors: errors.slice(0, 100) };
+  return { totalRows: rows.length, valid: valid.length, invalid: errors.length, retailers: summary, errors: errors.slice(0, 1000) };
 };
 
 // Runs one import end to end: records an ImportRun, validates, writes, then closes the run with counts and every error.
@@ -82,8 +125,9 @@ export const executeImport = async ({ type, fileName, userId, rows }: { type: Im
     if (type === "LOANS") {
       const prepared = await prepareLoans(rows);
       checked = prepared;
-      retailerSummary = prepared.summary;
-      written = await applyLoans(prepared.valid, run.id);
+      const created = await createNewRetailers(prepared.valid, prepared.newRetailers, prepared.summary);
+      retailerSummary = created.summary;
+      written = await applyLoans(created.valid, run.id);
     } else if (type === "PAYMENTS") {
       const v = validate(
         rows,

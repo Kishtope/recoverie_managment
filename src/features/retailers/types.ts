@@ -77,5 +77,7 @@ export type RetailerDashboardResponse = {
 export type RetailerImportSummary = {
   caller: number;
   retailer: number;
+  // Retailers the file introduced (their code was not known); created when the import runs. Optional: older runs do not have it.
+  created?: number;
   perRetailer: { retailerId: string; code: string; name: string; customers: number; rejected: number }[];
 };

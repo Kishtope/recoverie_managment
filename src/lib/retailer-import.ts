@@ -41,12 +41,12 @@ export const checkRetailerRows = (rows: RetailerRowInput[], retailers: KnownReta
       continue;
     }
     if (!r.retailerCode?.trim()) {
-      reject(r.row, r.agreementNo, "Retailer code is blank (needed for Retailer rows)");
+      reject(r.row, r.agreementNo, "Retailer Code is blank (needed for Retailer rows)");
       continue;
     }
     const retailer = byCode.get(codeKey(r.retailerCode));
     if (!retailer) {
-      reject(r.row, r.agreementNo, `Unknown retailer code "${r.retailerCode.trim()}"`);
+      reject(r.row, r.agreementNo, `Retailer Code "${r.retailerCode.trim()}" is not a known retailer`);
       continue;
     }
     if (retailer.status !== "ACTIVE") {
@@ -57,7 +57,7 @@ export const checkRetailerRows = (rows: RetailerRowInput[], retailers: KnownReta
     const taken = accepted.get(retailer.id) ?? 0;
     if (taken >= RETAILER_CAP) {
       rejected.set(retailer.id, (rejected.get(retailer.id) ?? 0) + 1);
-      reject(r.row, r.agreementNo, `Retailer ${retailer.code} already has ${RETAILER_CAP} customers in this file`);
+      reject(r.row, r.agreementNo, `Retailer ${retailer.code} can take only ${RETAILER_CAP} customers per upload; this customer was left out (upload it in a later file)`);
       continue;
     }
     accepted.set(retailer.id, taken + 1);

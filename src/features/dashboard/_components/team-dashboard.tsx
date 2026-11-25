@@ -11,8 +11,10 @@ import { EntityEmptyView } from "@/components/entity-components/entity-empty-vie
 import { EntityHeader } from "@/components/entity-components/entity-header";
 import { EntityPagination } from "@/components/entity-components/entity-pagination";
 import { ErrorView } from "@/components/entity-components/error-view";
+import { ExportExcelButton } from "@/components/export-excel-button";
 import { getErrorMessage } from "@/lib/get-error-message";
 import { cn } from "@/lib/utils";
+import { useExportLoanOverdue } from "../hooks/use-export-loan-overdue";
 import { useGetTeamSummary, useGetTeamUsers } from "../hooks/use-team-dashboard";
 import { useTeamParams } from "../hooks/use-team-params";
 import { CollectionHero } from "./collection-hero";
@@ -34,6 +36,8 @@ export const TeamDashboard = () => {
   const params = useTeamParams();
   const summary = useGetTeamSummary(params.query);
   const users = useGetTeamUsers({ ...params.query, sort: "collected", page: params.page, pageSize: PAGE_SIZE });
+  // "Export Excel" downloads the overdue cases in the hub sheet format for the filters on screen.
+  const { mutate: exportOverdue, isPending: isExporting } = useExportLoanOverdue();
   const columns = useMemo(() => getTeamUserColumns(), []);
 
   const data = summary.data;
@@ -43,7 +47,7 @@ export const TeamDashboard = () => {
   return (
     <EntityContainer
       header={<EntityHeader title="Dashboard" description="How recovery is going across your team." />}
-      search={<TeamFilters params={params} />}
+      search={<TeamFilters params={params} actions={<ExportExcelButton onClick={() => exportOverdue(params.query)} isPending={isExporting} />} />}
     >
       {summary.isPending ? (
         <div className="flex flex-col gap-4">
