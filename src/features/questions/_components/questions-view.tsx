@@ -116,7 +116,7 @@ export const QuestionsView = () => {
           onNew={() => openForm(null)}
         />
       ) : (
-        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} getRowKey={(q) => q.id} />
+        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} startIndex={(data.page - 1) * data.pageSize} getRowKey={(q) => q.id} />
       )}
 
       <QuestionFormDialog open={formOpen} onOpenChange={setFormOpen} question={editing} />

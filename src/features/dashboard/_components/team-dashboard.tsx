@@ -55,7 +55,7 @@ export const TeamDashboard = () => {
       ) : (
         <div className={cn("flex flex-col gap-4", summary.isPlaceholderData && "opacity-60")}>
           <CollectionHero summary={data.summary} period={data.period} source={data.collectedSource} targetPct={data.targetPct} />
-          <SummaryStrip summary={data.summary} />
+          <SummaryStrip summary={data.summary} filters={params.query} />
         </div>
       )}
 
@@ -79,7 +79,7 @@ export const TeamDashboard = () => {
             <DataTable
               className={cn(users.isPlaceholderData && "opacity-60")}
               columns={columns}
-              rows={users.data.items}
+              rows={users.data.items} startIndex={(users.data.page - 1) * users.data.pageSize}
               getRowKey={(u) => u.agentId ?? "unassigned"}
               onRowClick={(u) => u.agentId && router.push(`/cases?agent=${u.agentId}`)}
             />

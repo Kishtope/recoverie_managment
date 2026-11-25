@@ -192,7 +192,7 @@ export const CasesView = () => {
         <DataTable
           className={cn(isPlaceholderData && "opacity-60")}
           columns={columns}
-          rows={data.items}
+          rows={data.items} startIndex={(data.page - 1) * data.pageSize}
           getRowKey={(l) => l.id}
           selection={canSelect ? { selected, onChange: setSelected } : undefined}
         />

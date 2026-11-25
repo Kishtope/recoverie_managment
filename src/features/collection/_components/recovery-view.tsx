@@ -92,7 +92,7 @@ export const RecoveryView = () => {
           <DataTable
             className={cn(isPlaceholderData && "opacity-60")}
             columns={columns}
-            rows={data.items}
+            rows={data.items} startIndex={(data.page - 1) * data.pageSize}
             getRowKey={(u) => u.agentId ?? "unassigned"}
             onRowClick={(u) => u.agentId && router.push(`/cases?agent=${u.agentId}`)}
           />

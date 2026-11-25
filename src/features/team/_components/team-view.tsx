@@ -161,7 +161,7 @@ export const TeamView = () => {
           onNew={canManage ? openCreate : undefined}
         />
       ) : (
-        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} getRowKey={(u) => u.id} />
+        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} startIndex={(data.page - 1) * data.pageSize} getRowKey={(u) => u.id} />
       )}
 
       {formOpen && (

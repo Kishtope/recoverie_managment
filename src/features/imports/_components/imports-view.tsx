@@ -81,7 +81,7 @@ export const ImportsView = () => {
           onNew={params.hasActiveFilters ? undefined : () => setUploadOpen(true)}
         />
       ) : (
-        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={uploadedColumns} rows={data.items} getRowKey={(l) => l.id} />
+        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={uploadedColumns} rows={data.items} startIndex={(data.page - 1) * data.pageSize} getRowKey={(l) => l.id} />
       )}
 
       <ImportUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} onOpenErrors={setOpenRunId} />

@@ -124,7 +124,7 @@ export const RetailersView = () => {
           message={params.hasActiveFilters ? "No retailers match this search." : "No retailers have been loaded yet."}
         />
       ) : (
-        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} getRowKey={(r) => r.id} />
+        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} startIndex={(data.page - 1) * data.pageSize} getRowKey={(r) => r.id} />
       )}
 
       <RetailerFormDialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)} retailer={editing} />

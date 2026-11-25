@@ -124,7 +124,7 @@ export const CutoverView = () => {
       ) : data.items.length === 0 ? (
         <EntityEmptyView empty_label="Nobody to show" message={params.hasActiveFilters ? "Everyone is ready." : "No active users yet."} />
       ) : (
-        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={memoColumns} rows={data.items} getRowKey={(u) => u.id} />
+        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={memoColumns} rows={data.items} startIndex={(data.page - 1) * data.pageSize} getRowKey={(u) => u.id} />
       )}
 
       <StaffCheck />

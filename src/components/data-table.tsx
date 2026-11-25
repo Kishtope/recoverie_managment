@@ -19,6 +19,8 @@ export type DataTableColumn<T> = {
  * @param getRowKey Stable unique key per row.
  * @param onRowClick Makes rows clickable (mouse only; put a real link in a cell for keyboard users).
  * @param selection Adds a checkbox column: the selected row keys and a setter. The header checkbox selects / clears the rows on this page.
+ * @param startIndex Number of rows before this page ((page - 1) * pageSize), so the S.No column keeps counting across pages. Defaults to 0.
+ * @param showIndex Shows the S.No column (default). Pass false for a table where numbering makes no sense.
  */
 export const DataTable = <T,>({
   columns,
@@ -26,6 +28,8 @@ export const DataTable = <T,>({
   getRowKey,
   onRowClick,
   selection,
+  startIndex = 0,
+  showIndex = true,
   className,
 }: {
   columns: DataTableColumn<T>[];
@@ -33,6 +37,8 @@ export const DataTable = <T,>({
   getRowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
   selection?: { selected: Set<string>; onChange: (next: Set<string>) => void };
+  startIndex?: number;
+  showIndex?: boolean;
   className?: string;
 }) => {
   const keys = rows.map(getRowKey);
@@ -55,6 +61,7 @@ export const DataTable = <T,>({
               <Checkbox aria-label="Select all on this page" checked={allSelected} indeterminate={someSelected && !allSelected} onCheckedChange={(on) => toggle(keys, !!on)} />
             </TableHead>
           )}
+          {showIndex && <TableHead className="w-14 text-center">S.No</TableHead>}
           {columns.map((col) => (
             <TableHead key={col.key} className={col.className}>
               {col.header}
@@ -63,13 +70,14 @@ export const DataTable = <T,>({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row) => (
+        {rows.map((row, i) => (
           <TableRow key={getRowKey(row)} className={cn(onRowClick && "cursor-pointer")} onClick={onRowClick ? () => onRowClick(row) : undefined}>
             {selection && (
               <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
                 <Checkbox aria-label="Select row" checked={selection.selected.has(getRowKey(row))} onCheckedChange={(on) => toggle([getRowKey(row)], !!on)} />
               </TableCell>
             )}
+            {showIndex && <TableCell className="w-14 text-center tabular-nums text-muted-foreground">{startIndex + i + 1}</TableCell>}
             {columns.map((col) => (
               <TableCell key={col.key} className={col.className}>
                 {col.cell(row)}

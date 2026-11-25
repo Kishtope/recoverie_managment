@@ -127,7 +127,7 @@ export const RetailerDetailView = ({ id }: { id: string }) => {
               message={params.hasActiveFilters || params.q ? "No customers match this search." : "This retailer holds no customers yet. They arrive with a customer upload whose rows carry this retailer's code."}
             />
           ) : (
-            <DataTable className={cn(customers.isPlaceholderData && "opacity-60")} columns={retailerCustomersColumns} rows={customers.data.items} getRowKey={(c) => c.id} />
+            <DataTable className={cn(customers.isPlaceholderData && "opacity-60")} columns={retailerCustomersColumns} rows={customers.data.items} startIndex={(customers.data.page - 1) * customers.data.pageSize} getRowKey={(c) => c.id} />
           )}
           <EntityPagination page={params.page} totalPages={totalPages} onPageChange={params.setPage} disabled={customers.isPlaceholderData} />
         </div>

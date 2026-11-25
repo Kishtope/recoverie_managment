@@ -108,7 +108,7 @@ export const CallsView = () => {
       ) : data.items.length === 0 ? (
         <EntityEmptyView empty_label="No calls" message={params.hasActiveFilters ? "No calls match these filters." : "Calls you place from a case will show here."} />
       ) : (
-        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} getRowKey={(c) => c.id} />
+        <DataTable className={cn(isPlaceholderData && "opacity-60")} columns={columns} rows={data.items} startIndex={(data.page - 1) * data.pageSize} getRowKey={(c) => c.id} />
       )}
     </EntityContainer>
   );
