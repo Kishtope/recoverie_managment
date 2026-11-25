@@ -2,6 +2,7 @@ import { loanScopeWhere, userScopeWhere } from "@/lib/auth";
 import type { CurrentUser } from "@/lib/access";
 import { logAudit } from "@/lib/audit";
 import { planAllocation, summarizePlan, type PlanLoan } from "@/lib/allocation-plan";
+import { dpdBucketWhere } from "@/lib/dpd-bucket";
 import { todayIst } from "@/lib/dates";
 import { notify } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -23,16 +24,17 @@ export const runAutoAllocation = async ({
   user,
   rule,
   agentIds,
+  bucket = "all",
   dryRun = false,
   agreementNos,
-}: Pick<AutoAllocateInput, "rule" | "agentIds" | "dryRun"> & { user: CurrentUser; agreementNos?: string[] }): Promise<AllocationRunOutcome> => {
+}: Pick<AutoAllocateInput, "rule" | "agentIds" | "bucket" | "dryRun"> & { user: CurrentUser; agreementNos?: string[] }): Promise<AllocationRunOutcome> => {
   const people = await prisma.user.findMany({
     where: { AND: [userScopeWhere(user), { id: { in: agentIds }, status: "ACTIVE", role: { in: ["AGENT", "CALLER"] } }] },
     select: { id: true, name: true, agencyId: true, access: { select: { company: true, branch: true } }, _count: { select: { allocations: { where: { active: true } } } } },
   });
   if (people.length === 0) return { ok: false, error: "Choose active agents inside your team" };
 
-  const open = [{ status: "ACTIVE" as const }, { allocations: { none: { active: true } } }, loanScopeWhere(user)];
+  const open = [{ status: "ACTIVE" as const }, { allocations: { none: { active: true } } }, loanScopeWhere(user), dpdBucketWhere(bucket)];
   let rows;
   let totalUnassigned: number;
   if (agreementNos) {
@@ -71,7 +73,7 @@ export const runAutoAllocation = async ({
     });
     assigned = created.count;
     await notify(prisma, plan.assignments.map((a) => ({ userId: a.agentId, type: "REASSIGNED" as const, loanId: a.loanId, day: todayIst(now) })));
-    await logAudit(user.id, "allocation.auto", "Allocation", undefined, { rule, people: people.length, assigned, unassigned: plan.unassigned.length, fromFile: !!agreementNos });
+    await logAudit(user.id, "allocation.auto", "Allocation", undefined, { rule, bucket, people: people.length, assigned, unassigned: plan.unassigned.length, fromFile: !!agreementNos });
   }
 
   const totals = summarizePlan(plan, loans);

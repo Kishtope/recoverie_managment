@@ -5,11 +5,12 @@ import { WandSparklesIcon } from "lucide-react";
 import { FormDialog } from "@/components/form-dialog";
 import { FormSelect } from "@/components/form-select";
 import { Button } from "@/components/ui/button";
-import { MultiSelect } from "@/components/multi-select";
+import { MultiCombobox } from "@/components/multi-combobox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { useScopeAgents } from "@/features/team/hooks/use-scope-agents";
 import { ALLOCATION_RULES, ALLOCATION_RULE_LABELS, type AllocationRule } from "@/lib/allocation-plan";
+import { DPD_BUCKETS, DPD_BUCKET_LABELS } from "@/lib/dpd-bucket";
 import { useAutoAllocate } from "../hooks/use-auto-allocate";
 import { autoAllocateSchema } from "../schemas";
 
@@ -22,12 +23,14 @@ export const AutoAllocateDialog = ({ open, onOpenChange }: { open: boolean; onOp
   const { data: agents, isPending: loadingAgents } = useScopeAgents(open);
   const { mutate, isPending } = useAutoAllocate();
   const [rule, setRule] = useState<AllocationRule>("EQUAL");
+  const [bucket, setBucket] = useState<string>("all");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [error, setError] = useState("");
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       setPicked(new Set());
+      setBucket("all");
       setError("");
     }
     onOpenChange(next);
@@ -37,7 +40,7 @@ export const AutoAllocateDialog = ({ open, onOpenChange }: { open: boolean; onOp
 
   // Validates with the API's schema, then allocates for real; the hook shows how many cases were allocated.
   const run = () => {
-    const parsed = autoAllocateSchema.safeParse({ rule, agentIds: [...picked] });
+    const parsed = autoAllocateSchema.safeParse({ rule, bucket, agentIds: [...picked] });
     if (!parsed.success) return setError(parsed.error.issues[0]?.message ?? "Check the form");
     setError("");
     mutate(parsed.data, { onSuccess: () => handleOpenChange(false) });
@@ -67,17 +70,28 @@ export const AutoAllocateDialog = ({ open, onOpenChange }: { open: boolean; onOp
             <FieldDescription>{ALLOCATION_RULE_LABELS[rule].hint}</FieldDescription>
           </Field>
 
+          <Field>
+            <FieldLabel htmlFor="allocation-dpd">DPD bucket</FieldLabel>
+            <FormSelect
+              id="allocation-dpd"
+              value={bucket}
+              onChange={setBucket}
+              options={[{ value: "all", label: "All DPD" }, ...DPD_BUCKETS.map((b) => ({ value: b, label: DPD_BUCKET_LABELS[b] }))]}
+            />
+            <FieldDescription>Only cases in this days-past-due range are allocated; the rest stay unassigned.</FieldDescription>
+          </Field>
+
           <FieldSet data-invalid={!!error}>
             <FieldLegend>People</FieldLegend>
-            <MultiSelect
+            <MultiCombobox
               id="allocation-people"
-              checkboxes
               value={[...picked]}
               onChange={(ids) => setPicked(new Set(ids))}
               options={(agents ?? []).map((a) => ({ value: a.id, label: a.name }))}
-              placeholder={loadingAgents ? "Loading people…" : "Choose people"}
-              allLabel="Everyone"
-              disabled={loadingAgents}
+              placeholder={loadingAgents ? "Loading people…" : "Search and choose people"}
+              selectAllLabel="Select everyone"
+              emptyLabel="No one matches"
+              disabled={loadingAgents || isPending}
               invalid={!!error}
             />
             {error && <FieldError>{error}</FieldError>}

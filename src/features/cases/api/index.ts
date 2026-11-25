@@ -1,6 +1,6 @@
 import { api } from "@/lib/axios";
 import { fetchFile } from "@/lib/download-file";
-import type { AutoAllocateInput, BulkReassignInput, ComplianceInput, DispositionFormInput, ReassignInput } from "../schemas";
+import type { AutoAllocateInput, BulkReassignInput, ComplianceInput, DispositionFormInput, ReassignInput, UpdateOverdueInput } from "../schemas";
 import type { AutoAllocateResult, BulkReassignResult, DispositionResult, LoanDetailResponse, LoanListQuery, LoanListResponse } from "../types";
 
 // Fetches one page of loans the caller may see; "all" filters are left out of the query.
@@ -25,6 +25,12 @@ export const addDisposition = async ({ loanId, ...body }: DispositionFormInput &
 // Moves a case to another agent (Manager / Agency owner / Admin).
 export const reassignLoan = async ({ loanId, ...body }: ReassignInput & { loanId: string }) => {
   const { data } = await api.post<{ ok: true; agent: { id: string; name: string } }>(`/loans/${loanId}/reassign`, body);
+  return data;
+};
+
+// Corrects a case's overdue amount (Admin / Manager).
+export const updateLoanOverdue = async ({ loanId, ...body }: UpdateOverdueInput & { loanId: string }) => {
+  const { data } = await api.patch<{ ok: true; overdueAmount: number }>(`/loans/${loanId}`, body);
   return data;
 };
 

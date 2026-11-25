@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DISPUTE_CATEGORIES, OUTCOMES, OUTCOME_DETAILS } from "@/lib/constants";
+import { DPD_BUCKETS } from "@/lib/dpd-bucket";
 import { todayIst } from "@/lib/dates";
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a valid date");
@@ -99,6 +100,12 @@ export type DispositionValues = z.output<ReturnType<typeof buildDispositionSchem
 export const reassignSchema = z.object({ agentId: z.string().min(1, "Choose an agent") });
 export type ReassignInput = z.infer<typeof reassignSchema>;
 
+// Body of PATCH /api/loans/[id]: an Admin or Manager corrects the case's overdue amount (in rupees, two decimals at most).
+export const updateOverdueSchema = z.object({
+  overdueAmount: z.number({ error: "Enter the overdue amount" }).min(0, "Amount can't be negative").max(9_999_999_999.99, "Amount is too large").multipleOf(0.01, "Use at most two decimals"),
+});
+export type UpdateOverdueInput = z.infer<typeof updateOverdueSchema>;
+
 // Body of POST /api/loans/[id]/compliance: a manager lifts a dispute pause or sets / clears the customer's do-not-call flag.
 export const complianceSchema = z.object({ action: z.enum(["RESOLVE_DISPUTE", "SET_DO_NOT_CALL", "CLEAR_DO_NOT_CALL"]) });
 export type ComplianceInput = z.infer<typeof complianceSchema>;
@@ -114,6 +121,8 @@ export type BulkReassignInput = z.infer<typeof bulkReassignSchema>;
 export const autoAllocateSchema = z.object({
   rule: z.enum(["EQUAL", "BUCKET", "BRANCH", "AMOUNT"]),
   agentIds: z.array(z.string().min(1)).min(1, "Choose at least one person").max(100, "Choose at most 100 people"),
+  // Only allocate cases in this DPD bucket ("all" = every unassigned case).
+  bucket: z.enum(["all", ...DPD_BUCKETS]).default("all"),
   dryRun: z.boolean().default(false),
 });
 export type AutoAllocateInput = z.input<typeof autoAllocateSchema>;

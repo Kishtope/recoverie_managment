@@ -27,6 +27,8 @@ import { useExportCases } from "../hooks/use-export-cases";
 import { useGetLoans } from "../hooks/use-get-loans";
 import { AutoAllocateDialog } from "./auto-allocate-dialog";
 import { BulkReassignDialog } from "./bulk-reassign-dialog";
+import { EditOverdueDialog } from "./edit-overdue-dialog";
+import type { LoanListItem } from "../types";
 import { getCasesColumns } from "./cases-table";
 
 const PAGE_SIZE = 10;
@@ -70,6 +72,8 @@ export const CasesView = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [allocateOpen, setAllocateOpen] = useState(false);
+  // Case whose overdue amount is being edited (Admin / Manager); null = dialog closed.
+  const [editingOverdue, setEditingOverdue] = useState<LoanListItem | null>(null);
 
   const params = useCasesParams();
   // The search and filters on screen; the list adds paging, the Excel export downloads every match.
@@ -104,7 +108,7 @@ export const CasesView = () => {
     ],
     [options],
   );
-  const columns = useMemo(() => getCasesColumns({ showAgent: !isAgent, showRetailer: isAdmin }), [isAgent, isAdmin]);
+  const columns = useMemo(() => getCasesColumns({ showAgent: !isAgent, showRetailer: isAdmin, onEditOverdue: canSeeFlags ? setEditingOverdue : undefined }), [isAgent, isAdmin, canSeeFlags]);
 
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
   const from = data && data.total ? (data.page - 1) * data.pageSize + 1 : 0;
@@ -197,6 +201,7 @@ export const CasesView = () => {
           selection={canSelect ? { selected, onChange: setSelected } : undefined}
         />
       )}
+      {canSeeFlags && <EditOverdueDialog loan={editingOverdue} onOpenChange={(open) => !open && setEditingOverdue(null)} />}
       {canAllocate && <AutoAllocateDialog open={allocateOpen} onOpenChange={setAllocateOpen} />}
       {canSelect && <BulkReassignDialog loanIds={[...selected]} open={bulkOpen} onOpenChange={setBulkOpen} onDone={() => setSelected(new Set())} />}
     </EntityContainer>

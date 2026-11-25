@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { EyeIcon } from "lucide-react";
+import { EyeIcon, PencilIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ const orDash = (value?: string | number | null) => (value === null || value === 
 
 // Columns of the Cases table. `showAgent` is off for agents (every case is their own); `showRetailer` is on for Admins only. The customer cell holds a real link so keyboard
 // users can open the case; rows themselves are not clickable (the View details button does that).
-export const getCasesColumns = ({ showAgent, showRetailer = false }: { showAgent: boolean; showRetailer?: boolean }): DataTableColumn<LoanListItem>[] => [
+export const getCasesColumns = ({ showAgent, showRetailer = false, onEditOverdue }: { showAgent: boolean; showRetailer?: boolean; onEditOverdue?: (loan: LoanListItem) => void }): DataTableColumn<LoanListItem>[] => [
   {
     key: "customer",
     header: "Customer",
@@ -48,7 +48,21 @@ export const getCasesColumns = ({ showAgent, showRetailer = false }: { showAgent
   { key: "agreementNo", header: "Agreement no.", cell: (l) => l.agreementNo },
   { key: "branch", header: "Company · branch", cell: (l) => `${l.company} · ${l.branch}` },
   { key: "dpd", header: "DPD", cell: (l) => orDash(l.dpd) },
-  { key: "overdue", header: "Overdue", cell: (l) => formatInr(l.overdueAmount) },
+  {
+    key: "overdue",
+    header: "Overdue",
+    // Admin / Manager get a pencil beside the amount that opens the edit dialog (the API enforces the role again).
+    cell: (l) => (
+      <div className="flex items-center gap-1">
+        <span>{formatInr(l.overdueAmount)}</span>
+        {onEditOverdue && (
+          <Button size="icon-sm" variant="ghost" aria-label={`Edit overdue amount for ${l.customerName}`} onClick={() => onEditOverdue(l)}>
+            <PencilIcon />
+          </Button>
+        )}
+      </div>
+    ),
+  },
   {
     key: "lastOutcome",
     header: "Last outcome",

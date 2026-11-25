@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser, loanScopeWhere } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { callingWindowMessage, isWithinCallingWindow } from "@/lib/calling-window";
 import { canDecideSettlement, waiverPct } from "@/lib/settlement";
 import { STALE_CALL_HOURS, isWorkerRole } from "@/lib/constants";
@@ -13,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/settings";
 import { findPendingCall, pendingCallWhere } from "@/lib/telephony/pending";
 import { callItemSelect, toCallItem } from "@/lib/telephony/serialize";
+import { updateOverdueSchema } from "@/features/cases/schemas";
 import type { CallBlocked, LoanDetail } from "@/features/cases/types";
 
 // Reads the customer's reference contacts (stored as JSON) into a safe, masked list.
@@ -139,4 +141,24 @@ export const GET = async (_req: Request, ctx: { params: Promise<{ id: string }> 
     dispositions: l.dispositions.map((d, i) => toDispositionItem(d, d.outcome === "PTP" ? ptpStatusAt(history, i, today, paymentDays) : null)),
   };
   return NextResponse.json({ loan });
+};
+
+// Corrects a case's overdue amount. Admin and Manager only, and only for cases in their scope (a case outside it is a 404). The old and new
+// amounts are audited because every dashboard "due" figure follows this number.
+export const PATCH = async (req: Request, ctx: { params: Promise<{ id: string }> }) => {
+  const auth = await requireUser(["ADMIN", "MANAGER"]);
+  if ("error" in auth) return auth.error;
+  const { id } = await ctx.params;
+
+  const parsed = updateOverdueSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
+
+  const loan = await prisma.loan.findFirst({ where: { AND: [{ id }, loanScopeWhere(auth.user)] }, select: { status: true, overdueAmount: true } });
+  if (!loan) return NextResponse.json({ error: "Case not found" }, { status: 404 });
+  if (loan.status === "CLOSED") return NextResponse.json({ error: "This loan is closed" }, { status: 409 });
+
+  await prisma.loan.update({ where: { id }, data: { overdueAmount: parsed.data.overdueAmount } });
+  await logAudit(auth.user.id, "loan.overdue.update", "Loan", id, { from: loan.overdueAmount?.toNumber() ?? null, to: parsed.data.overdueAmount });
+
+  return NextResponse.json({ ok: true, overdueAmount: parsed.data.overdueAmount });
 };

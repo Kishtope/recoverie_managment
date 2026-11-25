@@ -25,6 +25,7 @@ export type CollectedSource = "payments" | "agent";
 export type TeamSummary = {
   cases: number;
   dueAmount: number;
+  dueCases: number;
   paid: number;
   partPaid: number;
   callback: number;

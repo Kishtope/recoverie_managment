@@ -18,6 +18,7 @@ export type PeriodLoanRow = {
 export type Summary = {
   cases: number;
   dueAmount: number;
+  dueCases: number; // cases with an overdue amount above zero
   paid: number;
   partPaid: number;
   callback: number;
@@ -44,6 +45,7 @@ export const summarizeLoans = (rows: PeriodLoanRow[]): Summary => {
   const s: Summary = {
     cases: rows.length,
     dueAmount: 0,
+    dueCases: 0,
     paid: 0,
     partPaid: 0,
     callback: 0,
@@ -57,6 +59,7 @@ export const summarizeLoans = (rows: PeriodLoanRow[]): Summary => {
   };
   for (const row of rows) {
     s.dueAmount += row.overdue;
+    if (row.overdue > 0) s.dueCases += 1;
     s.collected += row.collected;
     const last = latest(row);
     if (last === null) s.pending += 1;

@@ -34,16 +34,17 @@ const casesHref = (filters: Pick<TeamFilters, "company" | "branch" | "agentId">,
 
 /**
  * @component SummaryStrip
- * @description The four supporting numbers under the hero (cases, due, conversations, promises) as one divided panel instead of separate cards.
+ * @description The five supporting numbers under the hero (cases, due ₹, due cases, conversations, promises) as one divided panel instead of separate cards.
  * Same pattern as the stat strip on the case page. "Spoke to" and "Promises" link to the Cases page with the dashboard's filters.
  * @param filters The dashboard's current filters, carried over to the Cases link.
  */
 export const SummaryStrip = ({ summary: s, filters, className }: { summary: TeamSummary; filters: Pick<TeamFilters, "company" | "branch" | "agentId">; className?: string }) => {
   const spokePct = s.cases > 0 ? Math.round((s.spoke / s.cases) * 100) : 0;
   return (
-    <section aria-label="Key numbers" className={cn("grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border md:grid-cols-4", className)}>
+    <section aria-label="Key numbers" className={cn("grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border md:grid-cols-5", className)}>
       <Cell label="Cases" value={s.cases.toLocaleString("en-IN")} note="Allocated and active" />
       <Cell label="Due" value={formatInr(s.dueAmount)} note="Overdue across these cases" />
+      <Cell label="Due cases" value={s.dueCases.toLocaleString("en-IN")} note={`${s.cases > 0 ? Math.round((s.dueCases / s.cases) * 100) : 0}% of cases have an overdue amount`} />
       <Cell label="Spoke to" value={s.spoke.toLocaleString("en-IN")} note={`${spokePct}% had a real conversation`} href={casesHref(filters)} />
       <Cell label="Promises" value={s.ptp.total.toLocaleString("en-IN")} note={`${s.ptp.kept} kept, ${s.ptp.upcoming} upcoming, ${s.ptp.broken} broken`} href={casesHref(filters, { outcome: "PTP" })} />
     </section>
